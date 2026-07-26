@@ -45,7 +45,16 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      # Se usa "npm install" y no "npm ci" a propósito: el fichero de bloqueo se
+      # genera en Windows y no incluye los binarios opcionales de Linux que
+      # necesitan rollup y esbuild, así que "npm ci" deja la compilación del
+      # frontend sin su módulo nativo.
+      - run: npm install --no-audit --no-fund
+
+      # El paquete compartido se compila a dist/, que no se versiona. Sin él, ni
+      # el API ni la web pueden resolver sus importaciones.
+      - name: Compilar el paquete compartido
+        run: npm run build -w @cita-facil/shared
 
       - name: Comprobar tipos
         run: npm run typecheck
@@ -64,7 +73,10 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
+
+      - name: Compilar el paquete compartido
+        run: npm run build -w @cita-facil/shared
 
       - name: Pruebas
         run: npm test
@@ -83,7 +95,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
 
       # Solo Chromium: los dos proyectos de la suite (escritorio y móvil) usan
       # el mismo motor, así que descargar Firefox y WebKit sería tiempo tirado.
@@ -92,6 +104,7 @@ jobs:
         working-directory: packages/web
 
       # Las pruebas atacan al binario compilado, no al servidor de desarrollo.
+      # Este "build" ya compila el paquete compartido en primer lugar.
       - name: Compilar
         run: npm run build
 
