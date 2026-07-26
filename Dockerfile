@@ -25,7 +25,14 @@ COPY packages/shared/package.json packages/shared/
 COPY packages/api/package.json packages/api/
 COPY packages/web/package.json packages/web/
 
-RUN npm ci
+# No se usa `npm ci` porque el fichero de bloqueo se genera en Windows y npm no
+# guarda en él los binarios nativos de otras plataformas (npm/cli#4828): la
+# compilación del frontend se quedaría sin los de rollup, lightningcss y
+# esbuild. Al resolver aquí se instalan los de esta imagen.
+#
+# Si algún día el fichero de bloqueo se genera en Linux, esto vuelve a ser
+# `npm ci`, que es más rápido y reproducible.
+RUN npm install --no-audit --no-fund
 
 # ------------------------------------------------------------------ compilado
 FROM deps AS build

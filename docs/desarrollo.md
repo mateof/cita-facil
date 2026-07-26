@@ -181,6 +181,35 @@ cambio detecta problemas reales: la primera versión de la suite no encontraba
 ningún campo porque las etiquetas no estaban asociadas a sus controles, que era
 un defecto de accesibilidad de verdad, no del test.
 
+## Integración continua
+
+En cada propuesta de cambio contra `develop` o `main`, y en cada empujón a esas
+ramas, GitHub Actions ejecuta tres trabajos en paralelo
+(`.github/workflows/ci.yml`):
+
+| Trabajo | Qué hace |
+| --- | --- |
+| Tipos y estilo | `npm run typecheck` y `npm run lint` |
+| Pruebas de backend | `npm test` |
+| Pruebas end-to-end | Compila y recorre la aplicación con Playwright |
+
+Al empujar (no en las propuestas), si los tres pasan se publica además la imagen
+de contenedor. Ver [despliegue](despliegue.md#imágenes-publicadas).
+
+Tres cosas que conviene saber porque en local no se ven:
+
+- **`npm run lint` forma parte de la CI.** Una importación que se queda sin usar
+  tras un refactor rompe la rama.
+- **`packages/shared/dist` no se versiona**, así que en un clon limpio hay que
+  compilar el paquete compartido antes del typecheck y de las pruebas de
+  backend. La CI lo hace; si clonas el proyecto en otra máquina, `npm run build`
+  antes de nada.
+- **El `package-lock.json` se genera en Windows** y npm no guarda en él los
+  binarios nativos de otras plataformas (rollup, lightningcss, esbuild). Por eso
+  el trabajo que compila el frontend, y también el Dockerfile, resuelven las
+  dependencias en lugar de usar `npm ci`. Generar el fichero de bloqueo en Linux
+  y versionarlo dejaría volver a `npm ci` en todas partes.
+
 ## Traducciones
 
 Tres ficheros en `packages/web/src/i18n/locales/`. El español es la referencia y

@@ -129,3 +129,79 @@ jobs:
           name: playwright-fallos
           path: packages/web/e2e/.results/
           retention-days: 7
+
+  # ---------------------------------------------------------------- publicación
+  # Imagen de contenedor en el registro de GitHub. Solo al empujar a develop o a
+  # main, nunca en una propuesta de cambio, y solo si los tres trabajos
+  # anteriores han pasado: una imagen que no supera las pruebas no debería poder
+  # desplegarse por descuido.
+  publicar:
+    name: Publicar imagen
+    runs-on: ubuntu-latest
+    needs: [comprobaciones, backend, e2e]
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # Tres etiquetas por publicación:
+      #   - móvil     (latest / latest-dev), la que apunta siempre a lo último;
+      #   - versión   (1.2.3 / 1.2.3-dev), la del package.json;
+      #   - instante  (1.2.3-20260726-1930), única e inmutable, para saber con
+      #               exactitud qué se desplegó y poder volver a ella.
+      - name: Calcular etiquetas
+        id: etiquetas
+        run: |
+          version=$(node -p "require('./package.json').version")
+          instante=$(date -u +'%Y%m%d-%H%M')
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            movil="latest"
+            serie="$version"
+          else
+            movil="latest-dev"
+            serie="$version-dev"
+          fi
+          imagen="ghcr.io/${{ github.repository }}"
+          # `tr` pasa a minúsculas: el nombre del repositorio puede llevar
+          # mayúsculas y un registro de contenedores no las admite.
+          imagen=$(echo "$imagen" | tr '[:upper:]' '[:lower:]')
+          {
+            echo "version=$version"
+            echo "instante=$instante"
+            echo "lista=$imagen:$movil,$imagen:$serie,$imagen:$serie-$instante"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Entrar en el registro
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir y publicar
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.etiquetas.outputs.lista }}
+          # La caché de la propia acción evita reinstalar dependencias en cada
+          # publicación cuando no han cambiado.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.etiquetas.outputs.version }}
+            org.opencontainers.image.created=${{ steps.etiquetas.outputs.instante }}
+
+      - name: Resumen
+        run: |
+          echo "### Imagen publicada" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          for etiqueta in $(echo "${{ steps.etiquetas.outputs.lista }}" | tr ',' ' '); do
+            echo "- \`$etiqueta\`" >> "$GITHUB_STEP_SUMMARY"
+          done

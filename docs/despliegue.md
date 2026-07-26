@@ -34,6 +34,56 @@ docker compose up -d
 
 Las migraciones se aplican al arrancar. Haz una copia antes.
 
+## Imágenes publicadas
+
+Cada empujón a `develop` o a `main` publica una imagen en el registro de
+GitHub, siempre que los tres trabajos de pruebas hayan pasado. Una imagen que no
+supera las pruebas no llega al registro.
+
+```
+ghcr.io/mateof/cita-facil
+```
+
+Se publican tres etiquetas cada vez:
+
+| Rama | Móvil | Versión | Instante |
+| --- | --- | --- | --- |
+| `main` | `latest` | `0.1.0` | `0.1.0-20260726-1930` |
+| `develop` | `latest-dev` | `0.1.0-dev` | `0.1.0-dev-20260726-1930` |
+
+La **móvil** apunta siempre a lo último de esa rama y es cómoda para
+desarrollo. La de **versión** sigue al `package.json`, así que se sobrescribe
+mientras no se suba el número. La del **instante** es única e inmutable: es la
+que hay que fijar en producción, porque permite saber con exactitud qué está
+desplegado y volver atrás sin ambigüedad.
+
+El instante va en UTC, con formato `AAAAMMDD-HHMM`.
+
+### Usarla
+
+El registro es privado, como el repositorio, así que hace falta entrar antes con
+un token de GitHub con permiso `read:packages`:
+
+```bash
+echo "$GITHUB_TOKEN" | docker login ghcr.io -u mateof --password-stdin
+docker pull ghcr.io/mateof/cita-facil:latest
+```
+
+Para fijar una versión concreta en `docker-compose.yml`, en lugar de construir
+en el servidor:
+
+```yaml
+services:
+  app:
+    image: ghcr.io/mateof/cita-facil:0.1.0-20260726-1930
+    # y se quita el bloque `build`
+```
+
+### Publicar una versión nueva
+
+Subir el número en el `package.json` de la raíz y fusionar en `main`. La
+etiqueta de versión sale de ahí, no de las etiquetas de git.
+
 ## Sin Docker, con systemd
 
 ```ini
