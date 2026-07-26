@@ -91,17 +91,20 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
-
-      # El fichero de bloqueo se genera en Windows, así que no incluye el
-      # binario nativo de rollup para Linux y la compilación del frontend se cae
-      # (npm/cli#4828). Se instala aparte, con la misma versión que rollup, sin
-      # tocar el fichero de bloqueo. La solución de fondo sería generarlo en
-      # Linux y volver a depender solo de "npm ci".
-      - name: Binario de rollup para Linux
+      # Este trabajo compila el frontend, y para eso hacen falta los binarios
+      # nativos de rollup, lightningcss y esbuild. El fichero de bloqueo se
+      # genera en Windows y npm no guarda en él los binarios de otras
+      # plataformas (npm/cli#4828), así que "npm ci" deja la compilación sin
+      # ellos. Resolver las dependencias desde cero en Linux los instala todos,
+      # en vez de ir añadiéndolos uno a uno cada vez que aparece otro.
+      #
+      # Se pierde la reproducibilidad exacta solo en este trabajo; los otros dos
+      # siguen usando "npm ci". La solución de fondo es generar el fichero de
+      # bloqueo en Linux y versionarlo.
+      - name: Instalar dependencias resolviendo para esta plataforma
         run: |
-          version=$(node -p "require('rollup/package.json').version")
-          npm install --no-save --no-audit --no-fund "@rollup/rollup-linux-x64-gnu@$version"
+          rm -f package-lock.json
+          npm install --no-audit --no-fund
 
       # Solo Chromium: los dos proyectos de la suite (escritorio y móvil) usan
       # el mismo motor, así que descargar Firefox y WebKit sería tiempo tirado.
