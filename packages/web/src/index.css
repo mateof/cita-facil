@@ -1,0 +1,181 @@
+@import 'tailwindcss';
+
+/**
+ * Tema.
+ *
+ * Los colores se declaran como variables de tema de Tailwind 4, así que
+ * `bg-brand`, `text-brand` y compañía se generan solos. La marca es una
+ * variable CSS que la organización puede sobrescribir en tiempo de ejecución
+ * desde sus ajustes, sin recompilar.
+ */
+@theme {
+  --color-brand: var(--brand, #2563eb);
+  --color-brand-dark: color-mix(in oklab, var(--brand, #2563eb) 85%, black);
+  --color-brand-soft: color-mix(in oklab, var(--brand, #2563eb) 12%, white);
+
+  --color-surface: #ffffff;
+  --color-surface-muted: #f6f7f9;
+  --color-border-subtle: #e5e7eb;
+
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --radius-card: 1rem;
+}
+
+:root {
+  --brand: #2563eb;
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-surface-muted text-slate-900 antialiased;
+  font-family: var(--font-sans);
+  /* Deja hueco para la barra inferior en móviles con área segura. */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* La animación de entrada se desactiva para quien pide menos movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm;
+  }
+
+  /*
+   * Tailwind 4 no permite aplicar con `@apply` una clase de componente
+   * definida en la propia hoja, así que la base se comparte con una lista de
+   * selectores en lugar de heredarse desde `.btn`.
+   */
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+      transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+    /* 44 px de alto mínimo: es el objetivo táctil cómodo en móvil. */
+    min-height: 2.75rem;
+  }
+
+  .btn-primary {
+    @apply bg-brand text-white hover:bg-brand-dark;
+  }
+
+  .btn-secondary {
+    @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+  }
+
+  .btn-ghost {
+    @apply text-slate-600 hover:bg-slate-100;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base
+      outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20
+      disabled:bg-slate-100;
+    min-height: 2.75rem;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-slate-700;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded-lg bg-slate-200;
+  }
+}
+
+/* Barra de desplazamiento discreta en las agendas largas. */
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-slate-300;
+}
+
+/*
+ * Contenido escrito por el establecimiento (contacto, sobre nosotros).
+ *
+ * Tailwind no da estilo a las etiquetas sueltas, y aquí el HTML no lo genera
+ * la aplicación sino quien redacta la página, así que hay que vestirlo por
+ * selector. Es un subconjunto pequeño a propósito: lo que admite el saneador.
+ */
+.prose-simple {
+  @apply text-slate-700;
+}
+.prose-simple > * + * {
+  @apply mt-3;
+}
+.prose-simple h1,
+.prose-simple h2,
+.prose-simple h3,
+.prose-simple h4 {
+  @apply mt-6 font-bold text-slate-900;
+}
+.prose-simple h1 {
+  @apply text-xl;
+}
+.prose-simple h2 {
+  @apply text-lg;
+}
+.prose-simple h3 {
+  @apply text-base;
+}
+.prose-simple a {
+  @apply text-brand underline underline-offset-2;
+}
+.prose-simple ul {
+  @apply list-disc space-y-1 pl-5;
+}
+.prose-simple ol {
+  @apply list-decimal space-y-1 pl-5;
+}
+.prose-simple blockquote {
+  @apply border-l-4 border-slate-200 pl-4 text-slate-600 italic;
+}
+.prose-simple code {
+  @apply rounded bg-slate-100 px-1 py-0.5 font-mono text-sm;
+}
+.prose-simple pre {
+  @apply overflow-x-auto rounded-xl bg-slate-900 p-4 text-sm text-slate-100;
+}
+.prose-simple pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+.prose-simple img {
+  @apply max-w-full rounded-xl;
+}
+.prose-simple table {
+  @apply w-full border-collapse text-sm;
+}
+.prose-simple th,
+.prose-simple td {
+  @apply border border-slate-200 px-3 py-2 text-left;
+}
+.prose-simple hr {
+  @apply border-slate-200;
+}

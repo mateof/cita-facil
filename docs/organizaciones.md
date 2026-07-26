@@ -1,0 +1,159 @@
+# Organizaciones
+
+La aplicación es multi-tenant: una misma instalación puede alojar varios
+negocios independientes. Una peluquería, un gimnasio y un polideportivo pueden
+convivir en el mismo servidor sin verse entre ellos.
+
+Cada organización tiene lo suyo y solo lo suyo:
+
+| Propio de cada organización | Compartido por la instalación |
+| --- | --- |
+| Sedes, servicios, recursos y horarios | Cuentas de usuario |
+| Citas, bonos, pagos e informes | Métodos de acceso y política de registro |
+| Personal, permisos y plantillas de aviso | Copias de seguridad y ajustes del servidor |
+| Página pública, marca y zona horaria | |
+
+Que las cuentas sean de la instalación es deliberado: la misma persona puede ser
+clienta de la peluquería y del gimnasio con un solo correo y una sola
+contraseña, y su historial en cada negocio es independiente. Quien trabaja en un
+negocio no ve nada del otro salvo que se le dé de alta también allí.
+
+![Listado de organizaciones](capturas/panel-organizaciones.jpg)
+
+## Crear una organización
+
+**Panel → Organizaciones → Nueva organización.** Solo aparece para el
+administrador de la instalación (`superadmin`).
+
+Hacen falta cuatro cosas: nombre, dirección pública, zona horaria y moneda. La
+dirección pública se calcula a partir del nombre si se deja en blanco, y es la
+que forma la URL de reservas: `https://tu-servidor/reservar/gimnasio-centro`.
+
+Al crearla se hacen tres cosas automáticamente:
+
+1. se crea una **sede inicial** con el mismo nombre, porque sin sede no se pueden
+   recibir citas,
+2. quien la crea queda como **propietario**,
+3. el panel **pasa a trabajar en ella**, que es lo que se quiere hacer a
+   continuación.
+
+Después toca lo de siempre: servicios, horarios, recursos y equipo. Nada de eso
+se hereda de otra organización.
+
+Desde la consola también se puede, sin pasar por el panel:
+
+```bash
+curl -X POST https://tu-servidor/api/v1/organizations \
+  -H "authorization: Bearer <token de superadmin>" \
+  -H 'content-type: application/json' \
+  -d '{"name":"Gimnasio Centro","timezone":"Europe/Madrid","locale":"es","currency":"EUR"}'
+```
+
+## Quién puede crear organizaciones
+
+Por defecto, **solo el administrador de la instalación**. Es lo correcto para el
+caso habitual: un servidor propio con uno o varios negocios conocidos. Si
+cualquier cuenta registrada pudiera crear la suya, un cliente podría aparecer en
+el portal público con un negocio inventado.
+
+Para montar un servicio abierto, en el que cada quien se da de alta y crea su
+negocio, se activa **Panel → Acceso y registro → Cualquiera puede crear su
+propio negocio**. Entonces cualquier cuenta puede crear una organización y queda
+como propietaria de ella.
+
+## Cambiar de organización
+
+Con más de una, el panel muestra un selector arriba del menú lateral. También se
+puede cambiar desde Organizaciones con "Trabajar aquí". La elección se recuerda
+entre sesiones.
+
+El administrador de la instalación entra en todas sin necesidad de pertenecer a
+ninguna. El resto del personal solo ve aquellas en las que tiene alta.
+
+## Dar de baja
+
+Desde Organizaciones, con el icono de la papelera. Antes de confirmar se muestra
+qué cuelga de esa organización: citas registradas, servicios y personal.
+
+Es un **borrado lógico**: la organización deja de aparecer en el panel y en el
+portal público, y su personal pierde el acceso, pero las citas, los bonos y los
+pagos siguen en la base de datos. Un negocio que cierra no debería llevarse por
+delante el histórico de gente que no tiene nada que ver con esa decisión.
+
+Su dirección pública queda reservada: no se puede crear otra organización con el
+mismo `slug`, para que un enlace o un QR antiguo no acabe en un negocio
+distinto.
+
+## Portal público con varios negocios
+
+Con una sola organización, la portada redirige directamente a su página de
+reservas. Con varias, muestra la lista para que el cliente elija. Cada una
+mantiene su color de marca, su logotipo y sus textos.
+
+## Endpoints
+
+| Método y ruta | Quién | Qué hace |
+| --- | --- | --- |
+| `GET /organizations` | con sesión | Las mías; todas si soy administrador de la instalación. |
+| `POST /organizations` | superadmin, o cualquiera con el autoservicio activo | Crear. |
+| `GET /organizations/:id` | `org:read` | Detalle. |
+| `PATCH /organizations/:id` | `org:update` | Nombre, marca, zona horaria, ajustes. |
+| `GET /organizations/:id/usage` | `org:read` | Qué cuelga de ella. |
+| `DELETE /organizations/:id` | `org:delete` (propietario o superadmin) | Baja lógica. |
+
+## Páginas de contacto y sobre nosotros
+
+Cada organización puede publicar dos páginas de contenido propio:
+
+- **Contacto**: dirección, teléfono, horarios, cómo llegar.
+- **Sobre nosotros**: quiénes son, historia, equipo, lo que quieran contar.
+
+Se editan en **Panel → Ajustes → Páginas**, en Markdown o en HTML, y se guardan
+**por idioma**: la pestaña edita el idioma que se esté usando en el panel, así
+que la misma página puede estar en español y en gallego con textos distintos.
+Si falta un idioma se muestra el que haya, igual que con los servicios.
+
+El interruptor **Publicada** es lo que las hace visibles: una página publicada
+aparece enlazada en el pie de la página de reservas, en
+`/reservar/<slug>/contacto` y `/reservar/<slug>/sobre-nosotros`. Sin publicar se
+puede ir redactando sin que la vea nadie. Si no hay ninguna publicada, no
+aparece pie.
+
+El botón **Vista previa** enseña el resultado ya convertido, exactamente como lo
+verá el cliente.
+
+El editor guarda cada idioma por separado y tiene vista previa:
+
+![Editor de páginas de contenido](capturas/panel-paginas.jpg)
+
+Y así queda publicada:
+
+![Página de contacto de un establecimiento](capturas/pagina-contacto.jpg)
+
+### Qué se puede escribir
+
+El contenido se limpia siempre antes de pintarlo, tanto el Markdown convertido
+como el HTML escrito a mano. Se admite lo que hace falta para una página de
+contacto o de presentación: encabezados, párrafos, negritas, listas, citas,
+código, enlaces, imágenes y tablas.
+
+Se elimina todo lo demás, en particular `<script>`, los atributos `on*` y los
+enlaces `javascript:`. No es desconfianza hacia el personal del negocio: el
+token de sesión vive en la memoria del navegador, así que un script en la página
+de un establecimiento se llevaría la sesión de cualquiera que la visitase,
+incluido un cliente de otra organización de la misma instalación.
+
+Tampoco se admiten `<iframe>`, así que un mapa incrustado no funcionará. Para
+indicar dónde está el negocio, lo práctico es un enlace al mapa y la dirección
+escrita, que además es lo que se puede copiar.
+
+### Endpoints
+
+| Método y ruta | Quién | Qué hace |
+| --- | --- | --- |
+| `GET /organizations/:id/pages` | `org:read` | Las dos páginas, con todos sus idiomas. |
+| `PUT /organizations/:id/pages/:key` | `org:update` | Guardar una. |
+| `GET /public/organizations/:slug/pages/:key` | público | El contenido ya resuelto al idioma. |
+
+La respuesta de `GET /public/organizations/:slug` incluye además `pages` con la
+clave y el título de las publicadas, que es lo que pinta el pie.
