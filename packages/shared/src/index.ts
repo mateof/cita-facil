@@ -1,5 +1,6 @@
 export * from './enums.js';
 export * from './permissions.js';
+export * from './search.js';
 export * from './time.js';
 export * from './schemas/common.js';
 export * from './schemas/auth.js';

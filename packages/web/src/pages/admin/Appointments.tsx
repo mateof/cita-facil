@@ -20,6 +20,8 @@ import {
   Select,
   Textarea,
 } from '../../components/ui.tsx';
+import { Combobox } from '../../components/combobox.tsx';
+import { CustomerPicker, toOptions } from '../../components/pickers.tsx';
 
 const STATUSES = [
   'pending',
@@ -219,6 +221,7 @@ function NewAppointmentModal({
   const [date, setDate] = useState(todayIso());
   const [duration, setDuration] = useState<number | ''>('');
   const [slot, setSlot] = useState<Slot | null>(null);
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const [guest, setGuest] = useState({ name: '', email: '', phone: '' });
   const [notes, setNotes] = useState('');
 
@@ -255,7 +258,18 @@ function NewAppointmentModal({
         serviceId,
         startsAt: slot!.startsAt,
         durationMinutes: duration || undefined,
-        guest: guest.name ? guest : undefined,
+        customerId: customerId ?? undefined,
+        // Los campos vacíos se quitan: el servidor valida el correo y el
+        // teléfono en cuanto vienen, y una cadena vacía no es ninguno de los
+        // dos. Mandarlos tal cual rechazaba el alta de quien solo deja nombre.
+        guest:
+          !customerId && guest.name
+            ? {
+                name: guest.name,
+                email: guest.email || undefined,
+                phone: guest.phone || undefined,
+              }
+            : undefined,
         notes: notes || undefined,
         source: 'admin',
       }),
@@ -275,7 +289,11 @@ function NewAppointmentModal({
           <Button variant="ghost" onClick={onClose}>
             {t('common.cancel')}
           </Button>
-          <Button loading={create.isPending} disabled={!slot} onClick={() => create.mutate()}>
+          <Button
+            loading={create.isPending}
+            disabled={!slot || (!customerId && !guest.name)}
+            onClick={() => create.mutate()}
+          >
             {t('common.save')}
           </Button>
         </>
@@ -284,20 +302,14 @@ function NewAppointmentModal({
       <ErrorMessage error={create.error} />
 
       <Field label={t('admin.service')} required>
-        <Select
-          value={serviceId}
-          onChange={(event) => {
-            setServiceId(event.target.value);
+        <Combobox
+          value={serviceId || null}
+          options={toOptions(organization.data, (item) => item.name)}
+          onChange={(id) => {
+            setServiceId(id ?? '');
             setSlot(null);
           }}
-        >
-          <option value="">—</option>
-          {organization.data?.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </Select>
+        />
       </Field>
 
       {service?.durationMode === 'flexible' && (
@@ -350,9 +362,23 @@ function NewAppointmentModal({
         </Field>
       )}
 
-      <Field label={t('admin.customer')} required>
+      <Field label={t('admin.existingCustomer')} hint={t('admin.existingCustomerHint')}>
+        <CustomerPicker
+          value={customerId}
+          onChange={(id, option) => {
+            setCustomerId(id);
+            // Al enlazar con una cuenta, sus datos los pone el servidor; los
+            // campos de invitado dejan de hacer falta.
+            if (id) setGuest({ name: '', email: '', phone: '' });
+            else if (option) setGuest({ name: option.label, email: '', phone: '' });
+          }}
+        />
+      </Field>
+
+      <Field label={t('admin.customer')} required={!customerId}>
         <Input
           value={guest.name}
+          disabled={Boolean(customerId)}
           onChange={(event) => setGuest({ ...guest, name: event.target.value })}
           placeholder={t('auth.name')}
         />
@@ -362,6 +388,7 @@ function NewAppointmentModal({
         <Field label={t('auth.email')}>
           <Input
             type="email"
+            disabled={Boolean(customerId)}
             value={guest.email}
             onChange={(event) => setGuest({ ...guest, email: event.target.value })}
           />
@@ -369,6 +396,7 @@ function NewAppointmentModal({
         <Field label={t('auth.phone')}>
           <Input
             type="tel"
+            disabled={Boolean(customerId)}
             value={guest.phone}
             onChange={(event) => setGuest({ ...guest, phone: event.target.value })}
           />

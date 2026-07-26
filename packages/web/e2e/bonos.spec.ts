@@ -126,9 +126,9 @@ test.describe('bonos desde el panel', () => {
 
     const dialogo = page.getByRole('dialog');
     await dialogo.getByLabel('Persona').fill(CUENTAS.personal.email);
-    await dialogo.getByRole('button', { name: new RegExp(CUENTAS.personal.nombre) }).click();
-    // La etiqueta de la opción lleva las sesiones entre paréntesis.
-    await dialogo.getByLabel('Tipo de bono').selectOption({ label: 'Bono 10 sesiones (10)' });
+    await dialogo.getByRole('option', { name: new RegExp(CUENTAS.personal.nombre) }).click();
+    await dialogo.getByLabel('Tipo de bono').fill('Bono 10');
+    await dialogo.getByRole('option', { name: /Bono 10 sesiones/ }).click();
     await dialogo.getByRole('button', { name: 'Entregar' }).click();
 
     await expect(page.getByRole('main')).toContainText(CUENTAS.personal.nombre);
@@ -140,11 +140,102 @@ test.describe('bonos desde el panel', () => {
 
     await page.goto('/admin/bonos');
     await page.getByRole('button', { name: 'Bonos emitidos' }).click();
-    const fila = page.getByRole('listitem').filter({ hasText: CUENTAS.cliente.nombre }).first();
-    await fila.getByRole('button', { name: '+1' }).click();
+    const fila = page.getByRole('row').filter({ hasText: CUENTAS.cliente.nombre }).first();
+    await fila.getByRole('button', { name: 'Añadir una sesión' }).click();
 
     await expect
       .poll(() => saldoDe(request, CUENTAS.cliente))
       .toBe(antes + 1);
+  });
+});
+
+/**
+ * El buscador de personas es el mismo componente en toda la aplicación, así
+ * que lo que se comprueba aquí (sugerencias mientras se escribe, acentos y
+ * erratas) vale también para el resto de campos que enlazan entidades.
+ */
+test.describe('buscador de personas', () => {
+  test.beforeEach(async ({ page }) => {
+    await entrar(page, CUENTAS.admin);
+    await page.goto('/admin/bonos');
+    await page.getByRole('button', { name: 'Bonos emitidos' }).click();
+    await page.getByRole('button', { name: 'Entregar bono' }).click();
+  });
+
+  test('sugiere clientes escribiendo parte del nombre', async ({ page }) => {
+    const dialogo = page.getByRole('dialog');
+    await dialogo.getByLabel('Persona').fill('Luc');
+
+    await expect(dialogo.getByRole('option', { name: /Lucía/ })).toBeVisible();
+  });
+
+  test('encuentra aunque no se escriban las tildes', async ({ page }) => {
+    const dialogo = page.getByRole('dialog');
+    await dialogo.getByLabel('Persona').fill('lucia');
+
+    await expect(dialogo.getByRole('option', { name: /Lucía/ })).toBeVisible();
+  });
+
+  test('encuentra con una errata de tecleo', async ({ page }) => {
+    const dialogo = page.getByRole('dialog');
+    await dialogo.getByLabel('Persona').fill('lucai');
+
+    await expect(dialogo.getByRole('option', { name: /Lucía/ })).toBeVisible();
+  });
+
+  test('se puede elegir con el teclado', async ({ page }) => {
+    const dialogo = page.getByRole('dialog');
+    const campo = dialogo.getByLabel('Persona');
+    await campo.fill('Luc');
+    await expect(dialogo.getByRole('option', { name: /Lucía/ })).toBeVisible();
+
+    await campo.press('ArrowDown');
+    await campo.press('Enter');
+
+    await expect(campo).toHaveValue(/Lucía/);
+  });
+
+  /** El personal también recibe bonos, así que entra en las sugerencias. */
+  test('sugiere también al personal del centro', async ({ page }) => {
+    const dialogo = page.getByRole('dialog');
+    await dialogo.getByLabel('Persona').fill('Carlos');
+
+    await expect(dialogo.getByRole('option', { name: /Carlos/ })).toBeVisible();
+  });
+});
+
+test.describe('editar un bono emitido', () => {
+  test.beforeEach(async ({ page }) => {
+    await entrar(page, CUENTAS.admin);
+    await page.goto('/admin/bonos');
+    await page.getByRole('button', { name: 'Bonos emitidos' }).click();
+  });
+
+  test('cambiar las sesiones totales actualiza el saldo', async ({ page, request }) => {
+    const fila = page.getByRole('row').filter({ hasText: CUENTAS.cliente.nombre }).first();
+    await fila.getByRole('button', { name: 'Editar' }).click();
+
+    const dialogo = page.getByRole('dialog');
+    await dialogo.getByLabel('Sesiones totales').fill('25');
+    await dialogo.getByRole('button', { name: 'Guardar' }).click();
+
+    await expect.poll(() => saldoDe(request, CUENTAS.cliente)).toBeGreaterThan(20);
+  });
+
+  test('no deja dejar el bono por debajo de las sesiones usadas', async ({ page }) => {
+    const fila = page.getByRole('row').filter({ hasText: CUENTAS.cliente.nombre }).first();
+    await fila.getByRole('button', { name: 'Editar' }).click();
+
+    const dialogo = page.getByRole('dialog');
+    await dialogo.getByLabel('Sesiones totales').fill('0');
+    await dialogo.getByRole('button', { name: 'Guardar' }).click();
+
+    await expect(dialogo.getByRole('alert')).toBeVisible();
+  });
+
+  test('el filtro por estado deja fuera los bonos activos', async ({ page }) => {
+    await page.getByLabel('Estado').selectOption('cancelled');
+
+    await expect(page.getByRole('main')).toContainText('No hay bonos emitidos con ese filtro');
   });
 });

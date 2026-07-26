@@ -159,3 +159,63 @@ test.describe('gestión desde el panel', () => {
     await expect(principal.getByText('Servicios más solicitados')).toBeVisible();
   });
 });
+
+/**
+ * Alta de cita desde el mostrador.
+ *
+ * Los dos caminos: enlazarla con una cuenta que ya existe, o apuntar los datos
+ * de alguien que viene por primera vez. Antes solo se podía lo segundo, así
+ * que una cita del panel nunca quedaba asociada a su cliente.
+ */
+test.describe('nueva cita desde el panel', () => {
+  test.beforeEach(async ({ page }) => {
+    await entrar(page, CUENTAS.admin);
+    await page.goto('/admin/citas');
+    await page.getByRole('button', { name: 'Nueva cita' }).click();
+  });
+
+  /** Elige servicio, día con hueco y la primera hora libre. */
+  async function elegirHueco(page: Page): Promise<void> {
+    const dialogo = page.getByRole('dialog');
+    await dialogo.getByLabel('Servicio').fill('Corte');
+    await dialogo.getByRole('option', { name: /Corte de pelo/ }).click();
+    await dialogo.getByRole('button', { name: /^\d{2}:\d{2}$/ }).first().click();
+  }
+
+  test('el servicio se elige escribiendo parte del nombre', async ({ page }) => {
+    const dialogo = page.getByRole('dialog');
+    await dialogo.getByLabel('Servicio').fill('corte');
+
+    await expect(dialogo.getByRole('option', { name: /Corte de pelo/ })).toBeVisible();
+  });
+
+  test('una cita a nombre de un cliente registrado queda enlazada con su cuenta', async ({
+    page,
+  }) => {
+    const dialogo = page.getByRole('dialog');
+    await elegirHueco(page);
+    await dialogo.getByLabel('Cliente registrado').fill('Luc');
+    await dialogo.getByRole('option', { name: /Lucía/ }).click();
+    await dialogo.getByRole('button', { name: 'Guardar' }).click();
+
+    await expect(page.getByRole('main')).toContainText('Lucía Pena');
+  });
+
+  test('con la cuenta enlazada no se piden los datos a mano', async ({ page }) => {
+    const dialogo = page.getByRole('dialog');
+    await dialogo.getByLabel('Cliente registrado').fill('Luc');
+    await dialogo.getByRole('option', { name: /Lucía/ }).click();
+
+    await expect(dialogo.getByLabel('Cliente', { exact: true })).toBeDisabled();
+  });
+
+  test('quien viene por primera vez se apunta a mano', async ({ page }) => {
+    const nombre = `Visita ${Date.now().toString().slice(-5)}`;
+    const dialogo = page.getByRole('dialog');
+    await elegirHueco(page);
+    await dialogo.getByLabel('Cliente', { exact: true }).fill(nombre);
+    await dialogo.getByRole('button', { name: 'Guardar' }).click();
+
+    await expect(page.getByRole('main')).toContainText(nombre);
+  });
+});

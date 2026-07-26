@@ -434,6 +434,10 @@ async function notifyStaffPendingApproval(appointment: AppointmentDetail): Promi
 
 function resolveCustomerId(input: CreateAppointmentInput, actor: ActorContext): string | null {
   if (actor.isStaff && input.customerId) return input.customerId;
+  // El personal apuntando a alguien que viene de paso: la cita es de esa
+  // persona, no de quien la escribe. Sin esto, toda cita dada de alta en el
+  // mostrador quedaba a nombre de quien atendía.
+  if (actor.isStaff && input.guest) return null;
   if (input.guest && !actor.userId) return null;
   return actor.userId ?? input.customerId ?? null;
 }

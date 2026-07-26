@@ -18,6 +18,8 @@ import {
   SuccessMessage,
   Tabs,
 } from '../../components/ui.tsx';
+import { Combobox, type ComboboxOption } from '../../components/combobox.tsx';
+import { toOptions } from '../../components/pickers.tsx';
 
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 
@@ -54,6 +56,7 @@ export default function Schedules() {
 }
 
 function useOwners() {
+  const { t } = useTranslation();
   const organizationId = useAuth((state) => state.activeOrganizationId);
 
   const locations = useQuery({
@@ -68,14 +71,36 @@ function useOwners() {
     queryFn: () => api.get<AdminResource[]>(`/organizations/${organizationId}/resources`),
   });
 
-  return { organizationId, locations: locations.data ?? [], resources: resources.data ?? [] };
+  // Un horario se aplica a una sede o a un recurso, así que las dos listas van
+  // en el mismo buscador. El identificador lleva de qué se trata por delante y
+  // la segunda línea lo dice en palabras, que es lo que antes separaban los
+  // grupos del desplegable.
+  const opcionesDePropietario: ComboboxOption[] = [
+    ...(locations.data ?? []).map((location) => ({
+      id: `location:${location.id}`,
+      label: location.name,
+      description: t('admin.location'),
+    })),
+    ...(resources.data ?? []).map((resource) => ({
+      id: `resource:${resource.id}`,
+      label: resource.name,
+      description: t('admin.resource'),
+    })),
+  ];
+
+  return {
+    organizationId,
+    locations: locations.data ?? [],
+    resources: resources.data ?? [],
+    opcionesDePropietario,
+  };
 }
 
 /* -------------------------------------------------------------------------- */
 
 function WeeklyTab() {
   const { t } = useTranslation();
-  const { organizationId, locations, resources } = useOwners();
+  const { organizationId, locations, opcionesDePropietario } = useOwners();
   const queryClient = useQueryClient();
 
   const [owner, setOwner] = useState<{ type: string; id: string } | null>(null);
@@ -119,28 +144,15 @@ function WeeklyTab() {
   return (
     <Card>
       <Field label={t('admin.schedules.appliesTo')}>
-        <Select
-          value={owner ? `${owner.type}:${owner.id}` : ''}
-          onChange={(event) => {
-            const [type, id] = event.target.value.split(':');
+        <Combobox
+          value={owner ? `${owner.type}:${owner.id}` : null}
+          options={opcionesDePropietario}
+          onChange={(value) => {
+            if (!value) return;
+            const [type, id] = value.split(':');
             setOwner({ type: type!, id: id! });
           }}
-        >
-          <optgroup label={t('nav.services')}>
-            {locations.map((location) => (
-              <option key={location.id} value={`location:${location.id}`}>
-                {location.name}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label={t('admin.resources.title')}>
-            {resources.map((resource) => (
-              <option key={resource.id} value={`resource:${resource.id}`}>
-                {resource.name}
-              </option>
-            ))}
-          </optgroup>
-        </Select>
+        />
       </Field>
 
       {saved && <SuccessMessage>{t('common.save')}</SuccessMessage>}
@@ -221,7 +233,7 @@ function WeeklyTab() {
 
 function ExceptionsTab() {
   const { t } = useTranslation();
-  const { organizationId, locations, resources } = useOwners();
+  const { organizationId, locations, resources, opcionesDePropietario } = useOwners();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState({
@@ -329,24 +341,15 @@ function ExceptionsTab() {
         <ErrorMessage error={create.error} />
 
         <Field label={t('admin.schedules.appliesTo')}>
-          <Select
+          <Combobox
             value={`${draft.ownerType}:${draft.ownerId || locations[0]?.id || ''}`}
-            onChange={(event) => {
-              const [type, id] = event.target.value.split(':');
+            options={opcionesDePropietario}
+            onChange={(value) => {
+              if (!value) return;
+              const [type, id] = value.split(':');
               setDraft({ ...draft, ownerType: type!, ownerId: id! });
             }}
-          >
-            {locations.map((location) => (
-              <option key={location.id} value={`location:${location.id}`}>
-                {location.name}
-              </option>
-            ))}
-            {resources.map((resource) => (
-              <option key={resource.id} value={`resource:${resource.id}`}>
-                {resource.name}
-              </option>
-            ))}
-          </Select>
+          />
         </Field>
 
         <Field label={t('common.date')}>
@@ -509,17 +512,12 @@ function TimeOffTab() {
         <ErrorMessage error={create.error} />
 
         <Field label={t('admin.resource')}>
-          <Select
-            value={draft.resourceId}
-            onChange={(event) => setDraft({ ...draft, resourceId: event.target.value })}
-          >
-            <option value="">{t('common.all')}</option>
-            {resources.map((resource) => (
-              <option key={resource.id} value={resource.id}>
-                {resource.name}
-              </option>
-            ))}
-          </Select>
+          <Combobox
+            value={draft.resourceId || null}
+            options={toOptions(resources, (resource) => resource.name)}
+            placeholder={t('common.all')}
+            onChange={(id) => setDraft({ ...draft, resourceId: id ?? '' })}
+          />
         </Field>
 
         <Field label={t('common.from')} required>

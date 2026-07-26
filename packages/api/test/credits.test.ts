@@ -16,9 +16,11 @@ import {
   eligibilityFor,
   grantPack,
   refundCredit,
+  searchCustomers,
 } from '../src/modules/credits/service.ts';
 import { cancelAppointment, createAppointment } from '../src/modules/appointments/service.ts';
-import { localToInstant } from '../src/lib/dates.ts';
+import { isoNow, localToInstant } from '../src/lib/dates.ts';
+import { newId } from '../src/lib/ids.ts';
 
 let db: Kysely<Database>;
 let fixture: Fixture;
@@ -338,5 +340,167 @@ describe('gestión desde el panel', () => {
     await seedCreditPack(db, fixture, { onlinePurchase: false });
     const balance = await balanceFor(fixture.organizationId, fixture.customerId);
     assert.deepEqual(balance.packsForSale, []);
+  });
+});
+
+describe('editar un bono emitido', () => {
+  it('fijar las sesiones totales cambia el saldo', async () => {
+    const { walletId } = await seedCreditPack(db, fixture, { credits: 5, used: 1 });
+    const wallet = await adjustWallet(fixture.organizationId, walletId, { total: 12 }, null);
+    assert.equal(wallet.total, 12);
+  });
+
+  it('el saldo restante se recalcula con lo ya consumido', async () => {
+    const { walletId } = await seedCreditPack(db, fixture, { credits: 5, used: 1 });
+    const wallet = await adjustWallet(fixture.organizationId, walletId, { total: 12 }, null);
+    assert.equal(wallet.remaining, 11);
+  });
+
+  it('bajar el total por debajo de lo consumido se rechaza', async () => {
+    const { walletId } = await seedCreditPack(db, fixture, { credits: 5, used: 4 });
+    await assert.rejects(
+      () => adjustWallet(fixture.organizationId, walletId, { total: 2 }, null),
+      /consumidas/i,
+    );
+  });
+
+  /** El libro de movimientos guarda diferencias, no totales. */
+  it('el cambio de total queda anotado como la diferencia', async () => {
+    const { walletId } = await seedCreditPack(db, fixture, { credits: 5, used: 1 });
+    await adjustWallet(fixture.organizationId, walletId, { total: 8 }, null);
+
+    const asiento = await db
+      .selectFrom('credit_ledger')
+      .select(['delta'])
+      .where('wallet_id', '=', walletId)
+      .where('reason', '=', 'adjustment')
+      .executeTakeFirst();
+    assert.equal(asiento?.delta, 3);
+  });
+
+  it('cambiar la caducidad no toca el saldo', async () => {
+    const { walletId } = await seedCreditPack(db, fixture, { credits: 5 });
+    const wallet = await adjustWallet(
+      fixture.organizationId,
+      walletId,
+      { expiresAt: '2030-01-01T00:00:00.000Z' },
+      null,
+    );
+    assert.equal(wallet.remaining, 5);
+  });
+
+  it('cambiar solo la nota no genera movimiento', async () => {
+    const { walletId } = await seedCreditPack(db, fixture, { credits: 5 });
+    await adjustWallet(fixture.organizationId, walletId, { note: 'Regalo de bienvenida' }, null);
+
+    const asientos = await db
+      .selectFrom('credit_ledger')
+      .select(['id'])
+      .where('wallet_id', '=', walletId)
+      .where('reason', '=', 'adjustment')
+      .execute();
+    assert.equal(asientos.length, 0);
+  });
+});
+
+describe('buscar a quién entregar un bono', () => {
+  beforeEach(async () => {
+    await seedCreditPack(db, fixture, { credits: 5 });
+  });
+
+  /** Alguien registrado en la instalación que no es cliente de esta organización. */
+  async function personaAjena(email: string): Promise<string> {
+    const id = newId();
+    await db
+      .insertInto('users')
+      .values({
+        id,
+        email,
+        email_key: email,
+        email_verified: 1,
+        phone: null,
+        phone_verified: 0,
+        password_hash: null,
+        name: 'Cliente de otro negocio',
+        given_name: null,
+        family_name: null,
+        nif: null,
+        nif_key: id,
+        locale: 'es',
+        timezone: fixture.timezone,
+        avatar_url: null,
+        platform_role: 'user',
+        status: 'active',
+        mfa_enabled: 0,
+        mfa_totp_secret: null,
+        mfa_recovery_codes: null,
+        quiet_hours_start: null,
+        quiet_hours_end: null,
+        no_show_count: 0,
+        last_login_at: null,
+        created_at: isoNow(),
+        updated_at: isoNow(),
+        deleted_at: null,
+      })
+      .execute();
+    return id;
+  }
+
+  it('encuentra a un cliente de la organización por su nombre', async () => {
+    const encontrados = await searchCustomers(fixture.organizationId, 'Cliente');
+    assert.deepEqual(
+      encontrados.map((persona) => persona.id),
+      [fixture.customerId],
+    );
+  });
+
+  it('encuentra aunque el nombre lleve acentos y la búsqueda no', async () => {
+    await db
+      .updateTable('users')
+      .set({ name: 'Nuria Peña' })
+      .where('id', '=', fixture.customerId)
+      .execute();
+
+    const encontrados = await searchCustomers(fixture.organizationId, 'pena');
+    assert.equal(encontrados.length, 1);
+  });
+
+  it('encuentra con una errata de tecleo', async () => {
+    await db
+      .updateTable('users')
+      .set({ name: 'Nuria Peña' })
+      .where('id', '=', fixture.customerId)
+      .execute();
+
+    const encontrados = await searchCustomers(fixture.organizationId, 'nuira');
+    assert.equal(encontrados.length, 1);
+  });
+
+  it('no devuelve nada con una sola letra', async () => {
+    const encontrados = await searchCustomers(fixture.organizationId, 'c');
+    assert.deepEqual(encontrados, []);
+  });
+
+  /**
+   * Regla de privacidad: quien no es cliente de esta organización solo aparece
+   * si se sabe su correo entero. Buscar por nombre parcial dejaría a cualquier
+   * responsable listar la clientela de los demás negocios.
+   */
+  it('no encuentra por nombre a alguien de otra organización', async () => {
+    const ajeno = await personaAjena(`ajena-${newId()}@ejemplo.es`);
+
+    const encontrados = await searchCustomers(fixture.organizationId, 'otro negocio');
+    assert.equal(
+      encontrados.some((persona) => persona.id === ajeno),
+      false,
+    );
+  });
+
+  it('sí encuentra a alguien de fuera por su correo exacto', async () => {
+    const email = `ajena-${newId()}@ejemplo.es`;
+    const ajeno = await personaAjena(email);
+
+    const encontrados = await searchCustomers(fixture.organizationId, email);
+    assert.equal(encontrados[0]?.id, ajeno);
   });
 });

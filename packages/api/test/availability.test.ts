@@ -145,6 +145,35 @@ describe('reserva de citas', () => {
     assert.equal(stillFree, false, 'el hueco de las 10:00 debería estar ocupado');
   });
 
+  /**
+   * El personal reserva desde el mostrador para gente que no tiene cuenta. La
+   * cita es de quien viene, no de quien la apunta: antes se quedaba a nombre
+   * del empleado y el cliente no la veía en ninguna parte.
+   */
+  it('una cita que el personal apunta para alguien de paso no es del empleado', async () => {
+    const startsAt = localToInstant(monday, 13 * 60, fixture.timezone);
+
+    const { appointment } = await createAppointment(
+      fixture.organizationId,
+      { serviceId: fixture.serviceId, startsAt, partySize: 1, guest: { name: 'Alguien de paso' } },
+      { userId: fixture.customerId, isStaff: true },
+    );
+
+    assert.equal(appointment.customerId, null);
+  });
+
+  it('el personal puede reservar en nombre de un cliente registrado', async () => {
+    const startsAt = localToInstant(monday, 9 * 60, fixture.timezone);
+
+    const { appointment } = await createAppointment(
+      fixture.organizationId,
+      { serviceId: fixture.serviceId, startsAt, partySize: 1, customerId: fixture.customerId },
+      { userId: 'otro-empleado', isStaff: true },
+    );
+
+    assert.equal(appointment.customerId, fixture.customerId);
+  });
+
   it('rechaza una segunda reserva en el mismo hueco', async () => {
     const startsAt = localToInstant(monday, 11 * 60, fixture.timezone);
 

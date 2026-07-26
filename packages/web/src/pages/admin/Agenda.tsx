@@ -7,7 +7,9 @@ import { api } from '../../lib/api.ts';
 import { useAuth } from '../../stores/auth.ts';
 import { addDaysIso, formatDate, minutesToTime, statusClass, todayIso } from '../../lib/format.ts';
 import type { AdminResource, TodayPanel } from '../../lib/types.ts';
-import { Button, Card, LoadingBlock, PageHeader, Select } from '../../components/ui.tsx';
+import { Button, Card, LoadingBlock, PageHeader } from '../../components/ui.tsx';
+import { Combobox } from '../../components/combobox.tsx';
+import { toOptions } from '../../components/pickers.tsx';
 
 /**
  * Agenda del día en columnas por recurso.
@@ -84,18 +86,15 @@ export default function Agenda() {
         actions={
           <div className="flex items-center gap-1">
             {(locations.data?.length ?? 0) > 1 && (
-              <Select
-                value={locationId}
-                onChange={(event) => setLocationId(event.target.value)}
-                className="max-w-44"
-              >
-                <option value="">{t('common.all')}</option>
-                {locations.data?.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
-                  </option>
-                ))}
-              </Select>
+              <div className="w-44">
+                <Combobox
+                  value={locationId || null}
+                  options={toOptions(locations.data, (location) => location.name)}
+                  placeholder={t('common.all')}
+                  aria-label={t('admin.location')}
+                  onChange={(id) => setLocationId(id ?? '')}
+                />
+              </div>
             )}
             <Button variant="secondary" onClick={() => setDate(addDaysIso(date, -1))} aria-label={t('common.previous')}>
               <ChevronLeft className="size-4" />

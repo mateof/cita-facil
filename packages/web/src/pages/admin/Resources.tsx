@@ -18,6 +18,8 @@ import {
   Select,
   Switch,
 } from '../../components/ui.tsx';
+import { Combobox } from '../../components/combobox.tsx';
+import { toOptions } from '../../components/pickers.tsx';
 
 const TYPES = ['staff', 'room', 'seat', 'court', 'lane', 'equipment', 'table', 'vehicle', 'other'] as const;
 
@@ -170,16 +172,11 @@ export default function Resources() {
             </Field>
 
             <Field label={t('admin.location')}>
-              <Select
-                value={draft.locationId ?? ''}
-                onChange={(event) => setDraft({ ...draft, locationId: event.target.value })}
-              >
-                {locations.data?.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
-                  </option>
-                ))}
-              </Select>
+              <Combobox
+                value={draft.locationId ?? null}
+                options={toOptions(locations.data, (location) => location.name)}
+                onChange={(id) => setDraft({ ...draft, locationId: id ?? '' })}
+              />
             </Field>
 
             <Field
@@ -196,19 +193,15 @@ export default function Resources() {
 
             {draft.type === 'staff' && (
               <Field label={t('admin.resources.linkedUser')}>
-                <Select
-                  value={draft.userId ?? ''}
-                  onChange={(event) =>
-                    setDraft({ ...draft, userId: event.target.value || null })
-                  }
-                >
-                  <option value="">{t('common.none')}</option>
-                  {members.data?.map((member) => (
-                    <option key={member.userId} value={member.userId}>
-                      {member.name}
-                    </option>
-                  ))}
-                </Select>
+                <Combobox
+                  value={draft.userId ?? null}
+                  options={(members.data ?? []).map((member) => ({
+                    id: member.userId,
+                    label: member.name,
+                  }))}
+                  placeholder={t('common.none')}
+                  onChange={(id) => setDraft({ ...draft, userId: id })}
+                />
               </Field>
             )}
 

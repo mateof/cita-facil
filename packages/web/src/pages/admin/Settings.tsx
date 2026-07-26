@@ -17,6 +17,7 @@ import {
   Switch,
   Tabs,
 } from '../../components/ui.tsx';
+import { Combobox } from '../../components/combobox.tsx';
 
 interface OrganizationView {
   id: string;
@@ -122,16 +123,11 @@ function OrganizationTab({ section }: { section: string }) {
 
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t('profile.timezone')}>
-              <Select
+              <Combobox
                 value={draft.timezone}
-                onChange={(event) => setDraft({ ...draft, timezone: event.target.value })}
-              >
-                {timezones.map((zone) => (
-                  <option key={zone} value={zone}>
-                    {zone}
-                  </option>
-                ))}
-              </Select>
+                options={timezones.map((zone) => ({ id: zone, label: zone }))}
+                onChange={(zone) => setDraft({ ...draft, timezone: zone ?? draft.timezone })}
+              />
             </Field>
 
             <Field label={t('common.language')}>

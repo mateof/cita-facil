@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Ban, Pencil, Plus, RotateCcw, Ticket, Trash2, UserPlus } from 'lucide-react';
@@ -7,7 +7,6 @@ import { useAuth } from '../../stores/auth.ts';
 import { formatDate, formatMoney } from '../../lib/format.ts';
 import type {
   AdminService,
-  CreditCustomer,
   CreditPack,
   CreditWallet,
   CreditWalletStatus,
@@ -27,6 +26,8 @@ import {
   Tabs,
   Textarea,
 } from '../../components/ui.tsx';
+import { Combobox } from '../../components/combobox.tsx';
+import { CustomerPicker, toOptions } from '../../components/pickers.tsx';
 
 /**
  * Bonos: series de sesiones prepagadas.
@@ -346,6 +347,14 @@ const STATUS_STYLES: Record<CreditWalletStatus, string> = {
   cancelled: 'bg-red-100 text-red-800',
 };
 
+/**
+ * Bonos emitidos.
+ *
+ * Es una tabla con sus filtros encima, y el alta va entera en su propio
+ * diálogo. Antes los filtros estaban en la misma fila que el botón de entregar
+ * y parecían parte del alta: había que escribir el nombre ahí y elegir estado
+ * antes de pulsar, cuando en realidad no tenían nada que ver.
+ */
 function WalletsTab() {
   const { t, i18n } = useTranslation();
   const locale = i18n.language.slice(0, 2);
@@ -353,14 +362,26 @@ function WalletsTab() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [packId, setPackId] = useState('');
   const [granting, setGranting] = useState(false);
+  const [editing, setEditing] = useState<CreditWallet | null>(null);
+
+  const packs = useQuery({
+    enabled: Boolean(organizationId),
+    queryKey: ['credit-packs', organizationId],
+    queryFn: () => api.get<CreditPack[]>(`/organizations/${organizationId}/credit-packs`),
+  });
 
   const wallets = useQuery({
     enabled: Boolean(organizationId),
-    queryKey: ['credit-wallets', organizationId, search, status],
+    queryKey: ['credit-wallets', organizationId, search, status, packId],
     queryFn: () =>
       api.get<CreditWallet[]>(`/organizations/${organizationId}/credit-wallets`, {
-        query: { query: search || undefined, status: status || undefined },
+        query: {
+          query: search || undefined,
+          status: status || undefined,
+          packId: packId || undefined,
+        },
       }),
   });
 
@@ -373,12 +394,25 @@ function WalletsTab() {
   return (
     <Card>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-wrap items-end gap-3">
+        <fieldset className="flex flex-wrap items-end gap-3">
+          <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+            {t('admin.credits.filters')}
+          </legend>
+
           <Field label={t('common.search')} className="mb-0 w-56">
             <Input
+              type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder={t('admin.credits.searchHint')}
+            />
+          </Field>
+          <Field label={t('admin.credits.filterByPack')} className="mb-0 w-52">
+            <Combobox
+              value={packId || null}
+              options={toOptions(packs.data, (pack) => pack.name)}
+              placeholder={t('common.all')}
+              onChange={(id) => setPackId(id ?? '')}
             />
           </Field>
           <Field label={t('common.status')} className="mb-0 w-40">
@@ -390,7 +424,8 @@ function WalletsTab() {
               <option value="cancelled">{t('admin.credits.statusCancelled')}</option>
             </Select>
           </Field>
-        </div>
+        </fieldset>
+
         <Button icon={<UserPlus className="size-4" />} onClick={() => setGranting(true)}>
           {t('admin.credits.grant')}
         </Button>
@@ -403,49 +438,112 @@ function WalletsTab() {
         <p className="py-4 text-sm text-slate-500">{t('admin.credits.noWallets')}</p>
       )}
 
-      <ul className="divide-y divide-slate-100">
-        {wallets.data?.map((wallet) => (
-          <li key={wallet.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
-            <div className="min-w-0">
-              <p className="flex flex-wrap items-center gap-2 font-medium">
-                {wallet.userName ?? wallet.userEmail}
-                <Badge className={STATUS_STYLES[wallet.status]}>
-                  {t(`admin.credits.status${wallet.status.charAt(0).toUpperCase()}${wallet.status.slice(1)}`)}
-                </Badge>
-              </p>
-              <p className="text-sm text-slate-500">
-                {wallet.packName}
-                {' · '}
-                {t('admin.credits.remainingOf', { remaining: wallet.remaining, total: wallet.total })}
-                {wallet.expiresAt && ` · ${t('admin.credits.until', { date: formatDate(wallet.expiresAt, locale) })}`}
-              </p>
-            </div>
+      {wallets.data && wallets.data.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th scope="col" className="py-2 pr-3 font-medium">
+                  {t('admin.credits.columnPerson')}
+                </th>
+                <th scope="col" className="py-2 pr-3 font-medium">
+                  {t('admin.credits.columnPack')}
+                </th>
+                <th scope="col" className="py-2 pr-3 font-medium">
+                  {t('admin.credits.columnSessions')}
+                </th>
+                <th scope="col" className="py-2 pr-3 font-medium">
+                  {t('admin.credits.columnExpiry')}
+                </th>
+                <th scope="col" className="py-2 pr-3 font-medium">
+                  {t('admin.credits.columnStatus')}
+                </th>
+                <th scope="col" className="py-2 text-right font-medium">
+                  {t('admin.credits.columnActions')}
+                </th>
+              </tr>
+            </thead>
 
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                onClick={() => adjust.mutate({ id: wallet.id, patch: { delta: 1 } })}
-              >
-                +1
-              </Button>
-              <Button
-                variant="ghost"
-                icon={wallet.status === 'cancelled' ? <RotateCcw className="size-4" /> : <Ban className="size-4" />}
-                onClick={() =>
-                  adjust.mutate({
-                    id: wallet.id,
-                    patch: { cancelled: wallet.status !== 'cancelled' },
-                  })
-                }
-              >
-                {wallet.status === 'cancelled' ? t('admin.credits.restore') : t('admin.credits.cancel')}
-              </Button>
-            </div>
-          </li>
-        ))}
-      </ul>
+            <tbody className="divide-y divide-slate-100">
+              {wallets.data.map((wallet) => (
+                <tr key={wallet.id}>
+                  <td className="py-2.5 pr-3">
+                    <span className="block font-medium text-slate-900">
+                      {wallet.userName ?? wallet.userEmail}
+                    </span>
+                    {wallet.userName && wallet.userEmail && (
+                      <span className="block text-xs text-slate-500">{wallet.userEmail}</span>
+                    )}
+                  </td>
+                  <td className="py-2.5 pr-3">{wallet.packName}</td>
+                  <td className="py-2.5 pr-3 tabular-nums">
+                    {t('admin.credits.remainingOf', {
+                      remaining: wallet.remaining,
+                      total: wallet.total,
+                    })}
+                  </td>
+                  <td className="py-2.5 pr-3">
+                    {wallet.expiresAt
+                      ? formatDate(wallet.expiresAt, locale)
+                      : t('admin.credits.noExpiryShort')}
+                  </td>
+                  <td className="py-2.5 pr-3">
+                    <Badge className={STATUS_STYLES[wallet.status]}>
+                      {t(
+                        `admin.credits.status${wallet.status.charAt(0).toUpperCase()}${wallet.status.slice(1)}`,
+                      )}
+                    </Badge>
+                  </td>
+                  <td className="py-2.5">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+                        aria-label={t('admin.credits.addOne')}
+                        onClick={() => adjust.mutate({ id: wallet.id, patch: { delta: 1 } })}
+                      >
+                        +1
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+                        aria-label={t('common.edit')}
+                        onClick={() => setEditing(wallet)}
+                      >
+                        <Pencil className="size-4" />
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+                        aria-label={
+                          wallet.status === 'cancelled'
+                            ? t('admin.credits.restore')
+                            : t('admin.credits.cancel')
+                        }
+                        onClick={() =>
+                          adjust.mutate({
+                            id: wallet.id,
+                            patch: { cancelled: wallet.status !== 'cancelled' },
+                          })
+                        }
+                      >
+                        {wallet.status === 'cancelled' ? (
+                          <RotateCcw className="size-4" />
+                        ) : (
+                          <Ban className="size-4" />
+                        )}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <GrantModal open={granting} onClose={() => setGranting(false)} />
+      <EditWalletModal wallet={editing} onClose={() => setEditing(null)} />
     </Card>
   );
 }
@@ -454,24 +552,12 @@ function GrantModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const organizationId = useAuth((state) => state.activeOrganizationId);
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState('');
   const [draft, setDraft] = useState({ userId: '', packId: '', credits: '', note: '' });
 
   const packs = useQuery({
     enabled: open && Boolean(organizationId),
     queryKey: ['credit-packs', organizationId],
     queryFn: () => api.get<CreditPack[]>(`/organizations/${organizationId}/credit-packs`),
-  });
-
-  // Búsqueda acotada a la organización: clientes que ya han pasado por aquí,
-  // más cualquier cuenta localizada por su correo exacto.
-  const users = useQuery({
-    enabled: open && search.length >= 2,
-    queryKey: ['credit-customers', organizationId, search],
-    queryFn: () =>
-      api.get<CreditCustomer[]>(`/organizations/${organizationId}/credit-customers`, {
-        query: { query: search },
-      }),
   });
 
   const grant = useMutation({
@@ -484,13 +570,16 @@ function GrantModal({ open, onClose }: { open: boolean; onClose: () => void }) {
       }),
     onSuccess: () => {
       setDraft({ userId: '', packId: '', credits: '', note: '' });
-      setSearch('');
       onClose();
       void queryClient.invalidateQueries({ queryKey: ['credit-wallets'] });
     },
   });
 
-  const chosen = users.data?.find((user) => user.id === draft.userId);
+  const opcionesDeBono = toOptions(
+    packs.data,
+    (pack) => pack.name,
+    (pack) => t('admin.credits.sessionsCount', { count: pack.credits }),
+  );
 
   return (
     <Modal
@@ -513,49 +602,21 @@ function GrantModal({ open, onClose }: { open: boolean; onClose: () => void }) {
       }
     >
       <ErrorMessage error={grant.error} />
+      <p className="mb-4 text-sm text-slate-500">{t('admin.credits.grantHint')}</p>
 
       <Field label={t('admin.credits.person')} hint={t('admin.credits.personHint')} required>
-        <Input
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setDraft((current) => ({ ...current, userId: '' }));
-          }}
+        <CustomerPicker
+          value={draft.userId || null}
+          onChange={(userId) => setDraft((current) => ({ ...current, userId: userId ?? '' }))}
         />
       </Field>
 
-      {chosen ? (
-        <p className="mb-4 rounded-xl bg-brand-soft p-3 text-sm text-brand">
-          {chosen.name} · {chosen.email}
-        </p>
-      ) : (
-        <ul className="mb-4 max-h-40 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200">
-          {users.data?.map((user) => (
-            <li key={user.id}>
-              <button
-                type="button"
-                className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
-                onClick={() => setDraft((current) => ({ ...current, userId: user.id }))}
-              >
-                {user.name} <span className="text-slate-500">{user.email}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <Field label={t('admin.credits.pack')} required>
-        <Select
-          value={draft.packId}
-          onChange={(event) => setDraft({ ...draft, packId: event.target.value })}
-        >
-          <option value="">{t('common.choose')}</option>
-          {packs.data?.map((pack) => (
-            <option key={pack.id} value={pack.id}>
-              {pack.name} ({pack.credits})
-            </option>
-          ))}
-        </Select>
+      <Field label={t('admin.credits.pack')} hint={t('admin.credits.packHint')} required>
+        <Combobox
+          value={draft.packId || null}
+          options={opcionesDeBono}
+          onChange={(packId) => setDraft((current) => ({ ...current, packId: packId ?? '' }))}
+        />
       </Field>
 
       <Field label={t('admin.credits.customCredits')} hint={t('admin.credits.customCreditsHint')}>
@@ -568,8 +629,113 @@ function GrantModal({ open, onClose }: { open: boolean; onClose: () => void }) {
       </Field>
 
       <Field label={t('admin.credits.note')}>
-        <Input value={draft.note} onChange={(event) => setDraft({ ...draft, note: event.target.value })} />
+        <Input
+          value={draft.note}
+          onChange={(event) => setDraft({ ...draft, note: event.target.value })}
+        />
       </Field>
+    </Modal>
+  );
+}
+
+/**
+ * Edición de un bono ya entregado.
+ *
+ * Las sesiones se escriben como total y no como diferencia, que es como lo
+ * piensa quien atiende: "este bono es de 10". El API traduce ese total a la
+ * diferencia que anota en el histórico.
+ */
+function EditWalletModal({
+  wallet,
+  onClose,
+}: {
+  wallet: CreditWallet | null;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const organizationId = useAuth((state) => state.activeOrganizationId);
+  const queryClient = useQueryClient();
+  const [draft, setDraft] = useState({ total: '', expiresAt: '', note: '' });
+  const cargado = useRef('');
+
+  // Se rellena una sola vez por bono: si se copiara en cada render, cualquier
+  // refresco de la lista borraría lo que se esté escribiendo.
+  useEffect(() => {
+    if (!wallet || cargado.current === wallet.id) return;
+    cargado.current = wallet.id;
+    setDraft({
+      total: String(wallet.total),
+      expiresAt: wallet.expiresAt ? wallet.expiresAt.slice(0, 10) : '',
+      note: wallet.note ?? '',
+    });
+  }, [wallet]);
+
+  const save = useMutation({
+    mutationFn: () =>
+      api.patch(`/organizations/${organizationId}/credit-wallets/${wallet!.id}`, {
+        total: Number(draft.total),
+        expiresAt: draft.expiresAt ? `${draft.expiresAt}T00:00:00.000Z` : null,
+        note: draft.note,
+      }),
+    onSuccess: () => {
+      cargado.current = '';
+      onClose();
+      void queryClient.invalidateQueries({ queryKey: ['credit-wallets'] });
+    },
+  });
+
+  return (
+    <Modal
+      open={wallet !== null}
+      onClose={onClose}
+      title={t('admin.credits.editWallet')}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button loading={save.isPending} onClick={() => save.mutate()}>
+            {t('common.save')}
+          </Button>
+        </>
+      }
+    >
+      {wallet && (
+        <>
+          <ErrorMessage error={save.error} />
+          <p className="mb-4 text-sm text-slate-500">
+            {wallet.userName ?? wallet.userEmail} · {wallet.packName}
+          </p>
+
+          <Field
+            label={t('admin.credits.totalSessions')}
+            hint={t('admin.credits.usedSessions', { count: wallet.used })}
+            required
+          >
+            <Input
+              type="number"
+              min={wallet.used}
+              value={draft.total}
+              onChange={(event) => setDraft({ ...draft, total: event.target.value })}
+            />
+          </Field>
+
+          <Field label={t('admin.credits.expiresAt')} hint={t('admin.credits.expiresAtHint')}>
+            <Input
+              type="date"
+              value={draft.expiresAt}
+              onChange={(event) => setDraft({ ...draft, expiresAt: event.target.value })}
+            />
+          </Field>
+
+          <Field label={t('admin.credits.note')}>
+            <Input
+              value={draft.note}
+              onChange={(event) => setDraft({ ...draft, note: event.target.value })}
+            />
+          </Field>
+        </>
+      )}
     </Modal>
   );
 }

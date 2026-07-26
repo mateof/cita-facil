@@ -48,14 +48,17 @@ Los bonos vivos siguen siendo válidos y su histórico de consumos cuelga de él
 
 ## Entregar un bono desde el panel
 
-Panel → Bonos → Bonos emitidos → Entregar bono. Se busca a la persona, se elige
-el tipo de bono y ya está. Opcionalmente se puede cambiar el número de sesiones
-y dejar una nota interna.
+Panel → Bonos → Bonos emitidos → Entregar bono. Todo el alta va dentro del
+diálogo: la persona, el tipo de bono y, si hace falta, un número de sesiones
+distinto al del tipo y una nota interna. Los campos de arriba de la pantalla son
+solo filtros del listado, no hace falta tocarlos para entregar nada.
 
-La búsqueda encuentra a los clientes de la organización por nombre o correo, y a
-cualquier otra cuenta **por su correo exacto**. Es deliberado: si se pudiera
-buscar por nombre parcial en toda la instalación, cualquier responsable podría
-listar las cuentas de las demás organizaciones.
+El buscador de personas sugiere según se escribe, tolerando acentos y erratas:
+"pena" encuentra a "Peña" y "nuira" encuentra a "Nuria". Busca entre los
+**clientes de la organización** (quien ya ha reservado o ya tiene un bono) y su
+**personal**, más cualquier otra cuenta **por su correo exacto**. Que la
+búsqueda por nombre no salga de la organización es deliberado: si no, cualquier
+responsable podría ir listando las cuentas de los demás negocios letra a letra.
 
 Quien recibe el bono recibe un aviso (`credit.granted`) por los canales que
 tenga configurados.
@@ -72,12 +75,19 @@ cliente compra desde **Mis bonos**, y el bono se emite cuando la pasarela
 confirma el cobro, no antes. Si el tipo de bono tiene la venta online
 desactivada, el API rechaza el intento de pago aunque se llame directamente.
 
-## Ajustar o anular
+## Editar, ajustar o anular
 
-Desde Bonos emitidos se puede:
+Bonos emitidos es una tabla con filtros por texto, tipo de bono y estado. El
+texto busca igual que el resto de la aplicación: por nombre, correo, tipo de
+bono o nota, con acentos o sin ellos.
 
-- **añadir sesiones** (el botón `+1`) o retirarlas, nunca por debajo de las ya
-  consumidas,
+De cada fila se puede:
+
+- **añadir una sesión** con el botón `+1`, que es lo que más se hace en el
+  mostrador,
+- **editar** el bono: sesiones totales, caducidad y nota. Las sesiones se
+  escriben como cifra final ("este bono es de 10"), nunca por debajo de las ya
+  consumidas; el histórico anota internamente la diferencia,
 - **anular** el bono, que deja de contar para reservar sin borrar el histórico,
 - **reactivarlo** si la anulación fue un error.
 
@@ -107,9 +117,9 @@ Todos cuelgan de `/api/v1/organizations/:organizationId`.
 | `PATCH /credit-packs/:id` | `credit:write` | Modificarlo. |
 | `DELETE /credit-packs/:id` | `credit:write` | Borrarlo, o desactivarlo si ya se emitió alguno. |
 | `GET /credit-customers?query=` | `credit:write` | Buscar a quién entregarle un bono. |
-| `GET /credit-wallets` | `credit:read` | Bonos emitidos, con filtros por persona y estado. |
+| `GET /credit-wallets` | `credit:read` | Bonos emitidos, con filtros por persona, tipo, estado y texto. |
 | `POST /credit-wallets` | `credit:write` | Entregar un bono. |
-| `PATCH /credit-wallets/:id` | `credit:write` | Ajustar sesiones, caducidad o anular. |
+| `PATCH /credit-wallets/:id` | `credit:write` | Ajustar sesiones (`delta` o `total`), caducidad, nota o anular. |
 | `GET /credit-wallets/:id/movements` | `credit:read` | Histórico de consumos. |
 | `GET /credits/balance` | cliente | Mi saldo y los bonos a la venta. |
 | `GET /credits/eligibility?serviceId=` | cualquiera | Si se puede reservar ese servicio. |

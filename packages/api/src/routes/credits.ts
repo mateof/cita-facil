@@ -131,6 +131,7 @@ const creditRoutes: FastifyPluginAsync = async (fastify) => {
         params: organizationParams,
         querystring: z.object({
           userId: z.string().optional(),
+          packId: z.string().optional(),
           status: z.enum(CREDIT_WALLET_STATUSES).optional(),
           query: z.string().max(120).optional(),
         }),

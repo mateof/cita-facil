@@ -9,6 +9,7 @@ import type {
   CreditWalletStatus,
   UpdateCreditPackInput,
 } from '@cita-facil/shared';
+import { fuzzySearch } from '@cita-facil/shared';
 import { db } from '../../db/index.js';
 import type { Database } from '../../db/types.js';
 import { newId } from '../../lib/ids.js';
@@ -354,23 +355,34 @@ function walletQuery(organizationId: string, executor: Executor = db()) {
 
 export async function listWallets(
   organizationId: string,
-  filters: { userId?: string; status?: CreditWalletStatus; query?: string } = {},
+  filters: {
+    userId?: string;
+    packId?: string;
+    status?: CreditWalletStatus;
+    query?: string;
+  } = {},
 ): Promise<CreditWallet[]> {
   let query = walletQuery(organizationId);
   if (filters.userId) query = query.where('credit_wallets.user_id', '=', filters.userId);
-  if (filters.query) {
-    const like = `%${filters.query.toLowerCase()}%`;
-    query = query.where((eb) =>
-      eb.or([eb('users.email', 'like', like), eb('users.name', 'like', `%${filters.query}%`)]),
-    );
-  }
+  if (filters.packId) query = query.where('credit_wallets.credit_pack_id', '=', filters.packId);
 
   const rows = await query.orderBy('credit_wallets.created_at', 'desc').limit(500).execute();
   const names = await serviceNames(organizationId);
   const now = isoNow();
-  const wallets = rows.map((row) => toWallet(row, names, now));
+  let wallets = rows.map((row) => toWallet(row, names, now));
 
-  return filters.status ? wallets.filter((wallet) => wallet.status === filters.status) : wallets;
+  if (filters.status) wallets = wallets.filter((wallet) => wallet.status === filters.status);
+
+  // El texto se filtra aquí y no en SQL: así encuentra con acentos, sin ellos y
+  // con erratas, igual que el resto de buscadores de la aplicación.
+  if (filters.query?.trim()) {
+    wallets = fuzzySearch(wallets, filters.query, {
+      fields: (wallet) => [wallet.userName, wallet.userEmail, wallet.packName, wallet.note],
+      limit: wallets.length,
+    });
+  }
+
+  return wallets;
 }
 
 export async function getWallet(organizationId: string, id: string): Promise<CreditWallet> {
@@ -400,23 +412,36 @@ export async function walletMovements(organizationId: string, walletId: string) 
 }
 
 /**
+ * Cuánta gente de la organización se trae para puntuar en memoria.
+ *
+ * El filtrado aproximado no se puede hacer en SQL de forma portable entre los
+ * cinco motores, así que se traen los clientes de la organización y se ordenan
+ * aquí. Un negocio con más clientes que esto sigue funcionando: lo que se
+ * pierde es la tolerancia a erratas de los que queden fuera, no la búsqueda.
+ */
+const CUSTOMER_POOL = 2000;
+
+/**
  * Busca a quién entregarle un bono.
  *
- * Devuelve gente de esta organización: quien ya ha reservado alguna vez o
- * quien ya tiene un bono. Además admite un correo exacto, para poder entregar
- * un bono a alguien que acaba de registrarse y todavía no ha pisado el centro.
- * No se buscan usuarios sueltos de la instalación por nombre parcial: eso
- * dejaría a cualquier responsable listar las cuentas de las demás
- * organizaciones.
+ * Devuelve gente de esta organización: quien ya ha reservado alguna vez o quien
+ * ya tiene un bono, ordenada por parecido y tolerando acentos y erratas. Además
+ * admite un correo exacto, para poder entregar un bono a alguien que acaba de
+ * registrarse y todavía no ha pisado el centro.
+ *
+ * No se buscan cuentas sueltas de la instalación por nombre parcial: eso
+ * dejaría a cualquier responsable ir sacando los clientes de los demás
+ * negocios letra a letra. El correo entero hay que saberlo de antemano.
  */
 export async function searchCustomers(
   organizationId: string,
   query: string,
 ): Promise<{ id: string; name: string; email: string | null }[]> {
-  const term = query.trim().toLowerCase();
+  const term = query.trim();
   if (term.length < 2) return [];
 
-  const like = `%${term}%`;
+  // Gente de esta organización: quien ha reservado, quien ya tiene un bono y el
+  // propio personal, que también puede recibir uno.
   const knownIds = await db()
     .selectFrom('appointments')
     .select('customer_id')
@@ -428,28 +453,47 @@ export async function searchCustomers(
         .select('user_id as customer_id')
         .where('organization_id', '=', organizationId),
     )
+    .union(
+      db()
+        .selectFrom('memberships')
+        .select('user_id as customer_id')
+        .where('organization_id', '=', organizationId)
+        .where('active', '=', 1),
+    )
     .execute();
 
   const ids = knownIds.map((row) => row.customer_id).filter((id): id is string => Boolean(id));
 
-  const rows = await db()
+  const clientes =
+    ids.length > 0
+      ? await db()
+          .selectFrom('users')
+          .select(['id', 'name', 'email'])
+          .where('deleted_at', 'is', null)
+          .where('id', 'in', ids)
+          .orderBy('name')
+          .limit(CUSTOMER_POOL)
+          .execute()
+      : [];
+
+  const encontrados = fuzzySearch(clientes, term, {
+    fields: (usuario) => [usuario.name, usuario.email],
+  });
+
+  // El correo exacto entra aunque quien lo tenga no sea cliente todavía.
+  const porCorreo = await db()
     .selectFrom('users')
     .select(['id', 'name', 'email'])
     .where('deleted_at', 'is', null)
-    .where((eb) =>
-      eb.or([
-        // Correo exacto: la vía para alguien que aún no es cliente.
-        eb('email_key', '=', term),
-        ...(ids.length > 0
-          ? [eb.and([eb('id', 'in', ids), eb.or([eb('email', 'like', like), eb('name', 'like', like)])])]
-          : []),
-      ]),
-    )
-    .orderBy('name')
-    .limit(20)
-    .execute();
+    .where('email_key', '=', term.toLowerCase())
+    .executeTakeFirst();
 
-  return rows.map((row) => ({ id: row.id, name: row.name, email: row.email }));
+  const resultado = [...encontrados];
+  if (porCorreo && !resultado.some((usuario) => usuario.id === porCorreo.id)) {
+    resultado.unshift(porCorreo);
+  }
+
+  return resultado.slice(0, 20).map((row) => ({ id: row.id, name: row.name, email: row.email }));
 }
 
 function expiryFor(validityDays: number, from = Date.now()): string | null {
@@ -576,8 +620,14 @@ export async function adjustWallet(
   const now = isoNow();
   const changes: Record<string, unknown> = { updated_at: now };
 
-  if (input.delta !== undefined && input.delta !== 0) {
-    const total = current.credits_total + input.delta;
+  // Se admiten las dos formas de cambiar el saldo: la diferencia (los botones
+  // de +1 del listado) y el total (el formulario de edición). El asiento del
+  // libro siempre se escribe como diferencia.
+  const delta =
+    input.total !== undefined ? input.total - current.credits_total : (input.delta ?? 0);
+
+  if (delta !== 0) {
+    const total = current.credits_total + delta;
     if (total < current.credits_used) {
       throw new ConflictError(
         'No se pueden retirar sesiones ya consumidas',
@@ -592,14 +642,14 @@ export async function adjustWallet(
 
   await db().updateTable('credit_wallets').set(changes).where('id', '=', id).execute();
 
-  if (input.delta !== undefined && input.delta !== 0) {
+  if (delta !== 0) {
     await db()
       .insertInto('credit_ledger')
       .values({
         id: newId(),
         wallet_id: id,
         appointment_id: null,
-        delta: input.delta,
+        delta,
         reason: 'adjustment',
         created_by: actorId,
         note: input.note ?? null,

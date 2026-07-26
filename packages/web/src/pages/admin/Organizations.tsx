@@ -17,6 +17,7 @@ import {
   PageHeader,
   Select,
 } from '../../components/ui.tsx';
+import { Combobox } from '../../components/combobox.tsx';
 
 interface OrganizationRow extends ManageableOrganization {
   timezone: string;
@@ -266,13 +267,11 @@ function OrganizationForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t('admin.settings.timezone')}>
-          <Select value={draft.timezone} onChange={(event) => set({ timezone: event.target.value })}>
-            {timezones.map((zone) => (
-              <option key={zone} value={zone}>
-                {zone}
-              </option>
-            ))}
-          </Select>
+          <Combobox
+            value={draft.timezone ?? null}
+            options={timezones.map((zone) => ({ id: zone, label: zone }))}
+            onChange={(zone) => set({ timezone: zone ?? draft.timezone })}
+          />
         </Field>
 
         <Field label={t('common.language')}>

@@ -125,6 +125,30 @@ Todas las respuestas de error tienen la misma forma y un `code` que no cambia:
 El frontend traduce por ese código, así que el mensaje del servidor sirve para
 depurar y para clientes que no traducen.
 
+### Búsqueda aproximada en JavaScript, no en la base de datos
+
+Los campos que enlazan con otra entidad (una persona, un servicio, un recurso)
+sugieren mientras se escribe, tolerando acentos y erratas: "pena" encuentra
+"Peña", "nuira" encuentra "Nuria". La comparación vive en
+`packages/shared/src/search.ts` y la usan **los dos lados**: el backend, sobre
+los candidatos que saca de la base de datos, y el frontend, sobre las listas que
+ya tiene en memoria.
+
+No se hace en SQL porque la aplicación soporta cinco motores y ninguno comparte
+la misma extensión de similitud (`pg_trgm`, `SOUNDEX`, FTS5...). `LIKE` sirve
+para acotar, pero no encuentra una palabra con una letra cambiada de sitio.
+
+Se puntúa de 0 a 1 en el orden en que la gente espera los resultados: primero lo
+que empieza igual, luego lo que lo contiene y por último lo que se le parece con
+alguna errata. Para las erratas se usa distancia de edición contando la
+transposición de dos letras contiguas como **una sola** operación, porque es la
+equivocación de tecleo más frecuente y con Levenshtein a secas se quedaría
+fuera del umbral.
+
+El coste: el backend se trae los candidatos de la organización (hasta 2000) y
+puntúa en memoria. Por encima de esa cifra la búsqueda sigue funcionando, pero
+los que queden fuera solo se encuentran escribiendo bien.
+
 ## Frontend
 
 React con Vite, TanStack Query para el estado de servidor y Zustand solo para

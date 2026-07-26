@@ -100,6 +100,11 @@ export const adjustCreditWalletSchema = z
   .object({
     /** Sesiones que se suman (positivo) o se retiran (negativo). */
     delta: z.number().int().min(-1000).max(1000).optional(),
+    /**
+     * Sesiones totales del bono. Es lo que usa el formulario de edición, donde
+     * se escribe la cifra final en vez de la diferencia.
+     */
+    total: z.number().int().min(0).max(10000).optional(),
     expiresAt: z.string().datetime({ offset: true }).nullable().optional(),
     /** `true` anula el bono, `false` lo reactiva. */
     cancelled: z.boolean().optional(),
@@ -108,11 +113,15 @@ export const adjustCreditWalletSchema = z
   .refine(
     (value) =>
       value.delta !== undefined ||
+      value.total !== undefined ||
       value.expiresAt !== undefined ||
       value.cancelled !== undefined ||
       value.note !== undefined,
     { message: 'No hay nada que cambiar' },
-  );
+  )
+  .refine((value) => value.delta === undefined || value.total === undefined, {
+    message: 'Indica las sesiones totales o la diferencia, pero no las dos',
+  });
 export type AdjustCreditWalletInput = z.infer<typeof adjustCreditWalletSchema>;
 
 export const creditMovementSchema = z.object({
