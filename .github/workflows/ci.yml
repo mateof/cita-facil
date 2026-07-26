@@ -45,11 +45,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      # Se usa "npm install" y no "npm ci" a propósito: el fichero de bloqueo se
-      # genera en Windows y no incluye los binarios opcionales de Linux que
-      # necesitan rollup y esbuild, así que "npm ci" deja la compilación del
-      # frontend sin su módulo nativo.
-      - run: npm install --no-audit --no-fund
+      - run: npm ci
 
       # El paquete compartido se compila a dist/, que no se versiona. Sin él, ni
       # el API ni la web pueden resolver sus importaciones.
@@ -73,7 +69,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm install --no-audit --no-fund
+      - run: npm ci
 
       - name: Compilar el paquete compartido
         run: npm run build -w @cita-facil/shared
@@ -95,7 +91,17 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm install --no-audit --no-fund
+      - run: npm ci
+
+      # El fichero de bloqueo se genera en Windows, así que no incluye el
+      # binario nativo de rollup para Linux y la compilación del frontend se cae
+      # (npm/cli#4828). Se instala aparte, con la misma versión que rollup, sin
+      # tocar el fichero de bloqueo. La solución de fondo sería generarlo en
+      # Linux y volver a depender solo de "npm ci".
+      - name: Binario de rollup para Linux
+        run: |
+          version=$(node -p "require('rollup/package.json').version")
+          npm install --no-save --no-audit --no-fund "@rollup/rollup-linux-x64-gnu@$version"
 
       # Solo Chromium: los dos proyectos de la suite (escritorio y móvil) usan
       # el mismo motor, así que descargar Firefox y WebKit sería tiempo tirado.
