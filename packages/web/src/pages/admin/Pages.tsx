@@ -182,7 +182,7 @@ function PageEditor({ page, slug }: { page: OrganizationPage; slug: string | nul
         </Button>
         {page.published && slug && (
           <a
-            href={`/reservar/${slug}/${RUTAS[page.key]}`}
+            href={`/${slug}/${RUTAS[page.key]}`}
             target="_blank"
             rel="noreferrer"
             className="btn-ghost inline-flex items-center gap-1.5"

@@ -46,7 +46,7 @@ test.describe('páginas del establecimiento', () => {
   test('una página publicada se enlaza desde el pie de la reserva', async ({ page, request }) => {
     await guardarPagina(request, 'contact', { title: 'Contacto', body: '## Dónde estamos' });
 
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}`);
+    await page.goto(`/${ORGANIZACION_SLUG}`);
 
     await expect(pieDelEstablecimiento(page).getByRole('link', { name: 'Contacto' })).toBeVisible();
   });
@@ -54,7 +54,7 @@ test.describe('páginas del establecimiento', () => {
   test('sin páginas publicadas no aparece el pie', async ({ page, request }) => {
     await guardarPagina(request, 'contact', { title: 'Contacto', body: 'algo', published: false });
 
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}`);
+    await page.goto(`/${ORGANIZACION_SLUG}`);
     await expect(page.getByTestId('servicio').first()).toBeVisible();
 
     await expect(pieDelEstablecimiento(page)).toHaveCount(0);
@@ -66,7 +66,7 @@ test.describe('páginas del establecimiento', () => {
       body: '## Quiénes somos\n\nPeluquería de barrio desde 1998.',
     });
 
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}`);
+    await page.goto(`/${ORGANIZACION_SLUG}`);
     await pieDelEstablecimiento(page).getByRole('link', { name: 'Sobre nosotros' }).click();
 
     await expect(page.getByRole('heading', { name: 'Quiénes somos' })).toBeVisible();
@@ -78,7 +78,7 @@ test.describe('páginas del establecimiento', () => {
       body: '**Teléfono:** 981 000 000\n\n- Lunes a viernes\n- Sábados',
     });
 
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}/contacto`);
+    await page.goto(`/${ORGANIZACION_SLUG}/contacto`);
 
     await expect(page.getByRole('listitem').filter({ hasText: 'Lunes a viernes' })).toBeVisible();
   });
@@ -90,7 +90,7 @@ test.describe('páginas del establecimiento', () => {
       body: '<h2>Visítanos</h2><p>Rúa Real, 12</p>',
     });
 
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}/contacto`);
+    await page.goto(`/${ORGANIZACION_SLUG}/contacto`);
 
     await expect(page.getByRole('heading', { name: 'Visítanos' })).toBeVisible();
   });
@@ -107,7 +107,7 @@ test.describe('páginas del establecimiento', () => {
       body: '<p>Hola</p><script>window.__colado = true;</script>',
     });
 
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}/contacto`);
+    await page.goto(`/${ORGANIZACION_SLUG}/contacto`);
     await expect(page.getByText('Hola')).toBeVisible();
 
     expect(await page.evaluate(() => '__colado' in window)).toBe(false);
@@ -120,7 +120,7 @@ test.describe('páginas del establecimiento', () => {
       body: '<a href="javascript:alert(1)">pulsa aquí</a>',
     });
 
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}/contacto`);
+    await page.goto(`/${ORGANIZACION_SLUG}/contacto`);
 
     await expect(page.getByText('pulsa aquí')).not.toHaveAttribute('href', /javascript/);
   });
@@ -138,7 +138,7 @@ test.describe('páginas del establecimiento', () => {
       data: { format: 'markdown', title: { gl: 'Contacto' }, body: { gl: 'Onde estamos' }, published: true },
     });
 
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}`);
+    await page.goto(`/${ORGANIZACION_SLUG}`);
 
     await expect(pieDelEstablecimiento(page).getByRole('link', { name: 'Contacto' })).toBeVisible();
   });
@@ -146,7 +146,7 @@ test.describe('páginas del establecimiento', () => {
   test('una página publicada pero sin ningún contenido no se enlaza', async ({ page, request }) => {
     await guardarPagina(request, 'contact', { title: 'Contacto', body: '' });
 
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}`);
+    await page.goto(`/${ORGANIZACION_SLUG}`);
     await expect(page.getByTestId('servicio').first()).toBeVisible();
 
     await expect(pieDelEstablecimiento(page)).toHaveCount(0);
@@ -168,7 +168,7 @@ test.describe('editor de páginas', () => {
     await page.getByRole('button', { name: 'Guardar' }).click();
     await expect(page.getByRole('status')).toBeVisible();
 
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}/sobre-nosotros`);
+    await page.goto(`/${ORGANIZACION_SLUG}/sobre-nosotros`);
     await expect(page.getByRole('heading', { name: texto })).toBeVisible();
   });
 

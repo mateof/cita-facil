@@ -151,7 +151,7 @@ export default function Organizations() {
 
               <div className="flex items-center gap-1">
                 <a
-                  href={`/reservar/${organization.slug}`}
+                  href={`/${organization.slug}`}
                   target="_blank"
                   rel="noreferrer"
                   className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"

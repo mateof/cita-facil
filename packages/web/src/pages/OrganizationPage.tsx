@@ -49,7 +49,7 @@ export default function OrganizationPage({ pageKey }: { pageKey: 'contact' | 'ab
   return (
     <div className="pb-4">
       <Link
-        to={`/reservar/${slug}`}
+        to={`/${slug}`}
         className="mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800"
       >
         <ArrowLeft className="size-4" aria-hidden />

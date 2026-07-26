@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { CUENTAS, entrar, tokenDe } from './helpers.ts';
+import { CUENTAS, entrar, organizacionId, tokenDe } from './helpers.ts';
 
 /**
  * Alta de organizaciones desde el panel.
@@ -99,5 +99,75 @@ test.describe('organizaciones', () => {
     });
 
     expect(response.status()).toBe(403);
+  });
+});
+
+test.describe('direcciones de las organizaciones', () => {
+  test('la organización se sirve en la raíz, por su dirección', async ({ page }) => {
+    await page.goto('/peluqueria-ejemplo');
+
+    await expect(page.getByRole('heading', { name: /Peluquería Ejemplo/ })).toBeVisible();
+  });
+
+  test('la dirección antigua redirige a la nueva', async ({ page }) => {
+    await page.goto('/reservar/peluqueria-ejemplo');
+
+    await expect(page).toHaveURL(/\/peluqueria-ejemplo$/);
+  });
+
+  test('la dirección antigua conserva el resto de la ruta', async ({ page, request }) => {
+    const token = await tokenDe(request, CUENTAS.admin);
+    const organizacion = await organizacionId(request);
+    await request.put(`/api/v1/organizations/${organizacion}/pages/contact`, {
+      headers: { authorization: `Bearer ${token}` },
+      data: { title: { es: 'Contacto' }, body: { es: 'Rúa Real, 12' }, published: true },
+    });
+
+    try {
+      await page.goto('/reservar/peluqueria-ejemplo/contacto');
+
+      await expect(page).toHaveURL(/\/peluqueria-ejemplo\/contacto$/);
+    } finally {
+      // La página se despublica pase lo que pase: otras pruebas comprueban que
+      // sin contenido publicado no aparece el pie.
+      await request.put(`/api/v1/organizations/${organizacion}/pages/contact`, {
+        headers: { authorization: `Bearer ${token}` },
+        data: { title: { es: '' }, body: { es: '' }, published: false },
+      });
+    }
+  });
+
+  /**
+   * Cada organización vive en la raíz, así que su dirección compite con las
+   * pantallas de la aplicación: una llamada "admin" dejaría el panel
+   * inaccesible.
+   */
+  test('no se puede dar a una organización una dirección reservada', async ({ request }) => {
+    const token = await tokenDe(request, CUENTAS.admin);
+
+    const response = await request.post('/api/v1/organizations', {
+      headers: { authorization: `Bearer ${token}` },
+      data: { name: 'Intento', slug: 'admin', timezone: 'Europe/Madrid', locale: 'es', currency: 'EUR' },
+    });
+
+    expect(response.status()).toBe(422);
+  });
+
+  test('un nombre que sale reservado se corrige solo al crearla', async ({ request }) => {
+    const token = await tokenDe(request, CUENTAS.admin);
+
+    // "Perfil" daría el slug `perfil`, que es una pantalla del portal.
+    const response = await request.post('/api/v1/organizations', {
+      headers: { authorization: `Bearer ${token}` },
+      data: { name: 'Perfil', timezone: 'Europe/Madrid', locale: 'es', currency: 'EUR' },
+    });
+    expect(response.ok()).toBeTruthy();
+
+    const creada = (await response.json()) as { id: string; slug: string };
+    await request.delete(`/api/v1/organizations/${creada.id}`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(creada.slug).not.toBe('perfil');
   });
 });

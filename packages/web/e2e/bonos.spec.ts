@@ -27,7 +27,7 @@ async function saldoDe(
 
 test.describe('bonos en la reserva', () => {
   test('el servicio que necesita bono se marca en la lista', async ({ page }) => {
-    await page.goto('/reservar/peluqueria-ejemplo');
+    await page.goto('/peluqueria-ejemplo');
 
     const servicio = page
       .getByTestId('servicio')
@@ -36,7 +36,7 @@ test.describe('bonos en la reserva', () => {
   });
 
   test('sin sesión iniciada, el servicio de bono pide identificarse', async ({ page }) => {
-    await page.goto('/reservar/peluqueria-ejemplo');
+    await page.goto('/peluqueria-ejemplo');
     await page.getByTestId('servicio').filter({ hasText: SERVICIO_CON_BONO }).click();
 
     await expect(page.getByTestId('bono-necesario')).toContainText('Identifícate');
@@ -44,7 +44,7 @@ test.describe('bonos en la reserva', () => {
 
   test('con saldo, el servicio de bono deja elegir día', async ({ page }) => {
     await entrar(page, CUENTAS.cliente);
-    await page.goto('/reservar/peluqueria-ejemplo');
+    await page.goto('/peluqueria-ejemplo');
     await page.getByTestId('servicio').filter({ hasText: SERVICIO_CON_BONO }).click();
 
     await expect(page.getByTestId('bono-necesario')).toHaveCount(0);
@@ -54,7 +54,7 @@ test.describe('bonos en la reserva', () => {
     const antes = await saldoDe(request, CUENTAS.cliente);
 
     await entrar(page, CUENTAS.cliente);
-    await page.goto('/reservar/peluqueria-ejemplo');
+    await page.goto('/peluqueria-ejemplo');
     await page.getByTestId('servicio').filter({ hasText: SERVICIO_CON_BONO }).click();
 
     // Mismo criterio que en la reserva normal: el primer día con hueco, por

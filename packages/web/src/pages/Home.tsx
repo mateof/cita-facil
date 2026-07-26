@@ -31,7 +31,7 @@ export default function Home() {
 
   useEffect(() => {
     if (data?.length === 1) {
-      navigate(`/reservar/${data[0]!.slug}`, { replace: true });
+      navigate(`/${data[0]!.slug}`, { replace: true });
     }
   }, [data, navigate]);
 
@@ -54,7 +54,7 @@ export default function Home() {
       <ul className="grid gap-3 sm:grid-cols-2">
         {data.map((organization) => (
           <Card as="li" key={organization.id} className="transition hover:border-brand">
-            <Link to={`/reservar/${organization.slug}`} className="block">
+            <Link to={`/${organization.slug}`} className="block">
               <p className="font-semibold text-slate-900">{organization.name}</p>
               <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
                 <MapPin className="size-3.5" aria-hidden />

@@ -7,7 +7,7 @@ import { CUENTAS, ORGANIZACION_SLUG, entrar } from './helpers.ts';
  */
 test.describe('reserva pública', () => {
   test('la página del establecimiento lista sus servicios', async ({ page }) => {
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}`);
+    await page.goto(`/${ORGANIZACION_SLUG}`);
 
     await expect(page.getByRole('heading', { name: 'Peluquería Ejemplo' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Corte de pelo/ })).toBeVisible();
@@ -15,7 +15,7 @@ test.describe('reserva pública', () => {
   });
 
   test('un servicio de duración fija salta el paso de duración', async ({ page }) => {
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}`);
+    await page.goto(`/${ORGANIZACION_SLUG}`);
     await page.getByRole('button', { name: /Corte de pelo/ }).click();
 
     await expect(page.getByRole('heading', { name: 'Elige el día' })).toBeVisible();
@@ -23,7 +23,7 @@ test.describe('reserva pública', () => {
   });
 
   test('un servicio de duración ajustable pregunta cuánto tiempo se reserva', async ({ page }) => {
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}`);
+    await page.goto(`/${ORGANIZACION_SLUG}`);
     await page.getByRole('button', { name: /Alquiler de cabina/ }).click();
 
     await expect(page.getByText('¿Cuánto tiempo quieres reservar?')).toBeVisible();
@@ -32,7 +32,7 @@ test.describe('reserva pública', () => {
   });
 
   test('el precio por minuto cambia con la duración elegida', async ({ page }) => {
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}`);
+    await page.goto(`/${ORGANIZACION_SLUG}`);
     await page.getByRole('button', { name: /Alquiler de cabina/ }).click();
 
     // 30 minutos a 0,25 EUR el minuto, y el doble al doble de tiempo.
@@ -44,7 +44,7 @@ test.describe('reserva pública', () => {
   test('reserva de principio a fin como cliente identificado', async ({ page }) => {
     await entrar(page, CUENTAS.cliente);
 
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}`);
+    await page.goto(`/${ORGANIZACION_SLUG}`);
     await page.getByRole('button', { name: /Corte de pelo/ }).click();
 
     // Primer día con hueco de los que ofrece el selector.
@@ -99,7 +99,7 @@ test.describe('reserva pública', () => {
       .length;
 
     await entrar(page, CUENTAS.cliente);
-    await page.goto(`/reservar/${ORGANIZACION_SLUG}?servicio=${servicio.id}`);
+    await page.goto(`/${ORGANIZACION_SLUG}?servicio=${servicio.id}`);
 
     await page.locator('[data-testid="dia"][data-disponible="si"]').first().click();
     await page.locator('[data-testid="hueco"]').first().click();

@@ -48,7 +48,7 @@ export function OrganizationFooter({ slug }: { slug: string }) {
         {pages.map((page) => (
           <Link
             key={page.key}
-            to={`/reservar/${slug}/${PATHS[page.key] ?? page.key}`}
+            to={`/${slug}/${PATHS[page.key] ?? page.key}`}
             className="hover:text-brand hover:underline"
           >
             {page.title}

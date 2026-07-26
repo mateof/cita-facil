@@ -186,12 +186,12 @@ el detalle, incluidos los servicios que solo se reservan con bono.
 
 ## Widget de reserva
 
-La página pública de un establecimiento está en `/reservar/<slug>` y se puede
+La página pública de un establecimiento está en `/<slug>` y se puede
 empotrar en otra web:
 
 ```html
 <iframe
-  src="https://citas.ejemplo.es/reservar/mi-negocio"
+  src="https://citas.ejemplo.es/mi-negocio"
   style="width:100%;height:760px;border:0"
   title="Reservar cita"
 ></iframe>

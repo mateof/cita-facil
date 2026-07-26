@@ -143,6 +143,14 @@ export async function offerFreedSlot(freed: AppointmentDetail): Promise<number> 
   const settings = (await organizationSettings(freed.organizationId)) as Record<string, any>;
   if (settings.waitlistEnabled === false) return 0;
 
+  // La página pública se sirve por el slug de la organización, no por su id.
+  const organizacion = await db()
+    .selectFrom('organizations')
+    .select('slug')
+    .where('id', '=', freed.organizationId)
+    .executeTakeFirst();
+  if (!organizacion) return 0;
+
   const local = instantToLocal(freed.startsAt, freed.timezone);
   const weekday = new Date(`${local.date}T00:00:00.000Z`).getUTCDay() || 7;
 
@@ -197,7 +205,7 @@ export async function offerFreedSlot(freed: AppointmentDetail): Promise<number> 
         servicio: freed.serviceName,
         sede: freed.locationName,
         fechaHora: formatForHumans(freed.startsAt, freed.timezone, locale, 'full'),
-        enlace: `${env.APP_URL}/reservar/${freed.organizationId}?servicio=${freed.serviceId}&fecha=${local.date}&hora=${local.minute}&espera=${candidate.id}`,
+        enlace: `${env.APP_URL}/${organizacion.slug}?servicio=${freed.serviceId}&fecha=${local.date}&hora=${local.minute}&espera=${candidate.id}`,
       },
     });
 

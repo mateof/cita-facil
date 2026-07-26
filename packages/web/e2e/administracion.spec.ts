@@ -26,7 +26,7 @@ test.describe('gestión desde el panel', () => {
 
     await expect(page.getByText(nombre)).toBeVisible();
 
-    await page.goto('/reservar/peluqueria-ejemplo');
+    await page.goto('/peluqueria-ejemplo');
     await expect(page.getByRole('button', { name: new RegExp(nombre) })).toBeVisible();
   });
 
@@ -38,7 +38,7 @@ test.describe('gestión desde el panel', () => {
     await page.getByRole('button', { name: 'Guardar' }).click();
     await expect(page.getByRole('status')).toBeVisible();
 
-    await page.goto('/reservar/peluqueria-ejemplo');
+    await page.goto('/peluqueria-ejemplo');
     await expect(page.getByRole('heading', { name: nombre })).toBeVisible();
   });
 

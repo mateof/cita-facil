@@ -27,7 +27,13 @@ administrador de la instalación (`superadmin`).
 
 Hacen falta cuatro cosas: nombre, dirección pública, zona horaria y moneda. La
 dirección pública se calcula a partir del nombre si se deja en blanco, y es la
-que forma la URL de reservas: `https://tu-servidor/reservar/gimnasio-centro`.
+que forma la URL de reservas: `https://tu-servidor/gimnasio-centro`.
+
+Cada organización cuelga de la raíz, así que su dirección compite con las
+pantallas de la aplicación (`/entrar`, `/admin`, `/mis-citas`...). Esos nombres
+están reservados: si el que sale del nombre del negocio coincide con uno, se
+usa el siguiente libre (`perfil` → `perfil-2`), y si se escribe a mano el
+formulario lo rechaza.
 
 Al crearla se hacen tres cosas automáticamente:
 
@@ -69,6 +75,24 @@ entre sesiones.
 
 El administrador de la instalación entra en todas sin necesidad de pertenecer a
 ninguna. El resto del personal solo ve aquellas en las que tiene alta.
+
+## Una cuenta en varias organizaciones
+
+La cuenta es de la persona, no del negocio: el correo y la contraseña son los
+mismos en toda la instalación y no hay que registrarse otra vez para el segundo
+negocio.
+
+- **Personal**: se le invita desde **Panel → Equipo** en cada organización. Si el
+  correo ya tiene cuenta, la invitación añade el alta a la que ya tiene en vez de
+  crear una cuenta nueva, y puede llevar un rol distinto en cada una (por
+  ejemplo, propietaria de la peluquería y recepción del gimnasio).
+- **Clientes**: no hace falta darlos de alta en ninguna parte. Reservar o recibir
+  un bono ya los relaciona con esa organización, y cada negocio solo ve a los
+  suyos: en el buscador de clientes del panel aparece quien tenga citas o bonos
+  ahí, no todo el registro de la instalación.
+
+Lo que no se comparte es el contenido: servicios, horarios, bonos, plantillas de
+aviso y páginas son de cada organización.
 
 ## Dar de baja
 
@@ -115,7 +139,7 @@ Si falta un idioma se muestra el que haya, igual que con los servicios.
 
 El interruptor **Publicada** es lo que las hace visibles: una página publicada
 aparece enlazada en el pie de la página de reservas, en
-`/reservar/<slug>/contacto` y `/reservar/<slug>/sobre-nosotros`. Sin publicar se
+`/<slug>/contacto` y `/<slug>/sobre-nosotros`. Sin publicar se
 puede ir redactando sin que la vea nadie. Si no hay ninguna publicada, no
 aparece pie.
 

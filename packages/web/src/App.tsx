@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router';
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from './stores/auth.ts';
 import { AdminLayout, CustomerLayout } from './components/layout.tsx';
@@ -62,6 +62,18 @@ function RequireStaff({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * `/reservar/<slug>` era la dirección anterior de la página de un
+ * establecimiento. Se mantiene redirigiendo para que no se rompan los enlaces
+ * ya enviados por correo ni los QR impresos.
+ */
+function RedirectToOrganization() {
+  const { slug = '' } = useParams();
+  const location = useLocation();
+  const resto = location.pathname.replace(`/reservar/${slug}`, '');
+  return <Navigate to={`/${slug}${resto}${location.search}`} replace />;
+}
+
 function FullScreenLoader() {
   const { t } = useTranslation();
   return (
@@ -97,12 +109,6 @@ export default function App() {
       {/* Portal de cliente. */}
       <Route element={<CustomerLayout />}>
         <Route index element={<Home />} />
-        <Route path="/reservar/:slug" element={<Book />} />
-        <Route path="/reservar/:slug/contacto" element={<OrganizationPage pageKey="contact" />} />
-        <Route
-          path="/reservar/:slug/sobre-nosotros"
-          element={<OrganizationPage pageKey="about" />}
-        />
         <Route path="/consultar" element={<Lookup />} />
         <Route
           path="/mis-citas"
@@ -136,6 +142,21 @@ export default function App() {
             </RequireAuth>
           }
         />
+
+        {/*
+          Cada organización vive en la raíz: /peluqueria, /gimnasio. Va al final
+          porque es el patrón más general, aunque el enrutador da prioridad a
+          los segmentos fijos y no haría falta el orden. Los nombres que chocan
+          con estas pantallas están reservados y no se pueden asignar a una
+          organización (ver RESERVED_SLUGS).
+        */}
+        <Route path="/:slug" element={<Book />} />
+        <Route path="/:slug/contacto" element={<OrganizationPage pageKey="contact" />} />
+        <Route path="/:slug/sobre-nosotros" element={<OrganizationPage pageKey="about" />} />
+
+        {/* Las direcciones antiguas siguen funcionando. */}
+        <Route path="/reservar/:slug/*" element={<RedirectToOrganization />} />
+        <Route path="/reservar/:slug" element={<RedirectToOrganization />} />
       </Route>
 
       {/* Panel de administración. */}

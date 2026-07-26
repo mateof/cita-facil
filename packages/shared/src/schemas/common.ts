@@ -38,6 +38,56 @@ export const slugSchema = z
   .max(64)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Solo minúsculas, números y guiones');
 
+/**
+ * Nombres que no puede tener una organización.
+ *
+ * Cada organización vive en la raíz (`/peluqueria`, `/gimnasio`), así que su
+ * dirección compite con las pantallas de la aplicación y con lo que sirve el
+ * servidor. Una organización llamada "admin" dejaría el panel inaccesible.
+ *
+ * Aquí solo están las de primer nivel: `/citas/:id` reserva `citas`, pero
+ * `/peluqueria/contacto` no choca con nada porque cuelga del propio slug.
+ */
+export const RESERVED_SLUGS = [
+  // Pantallas de la aplicación.
+  'activar',
+  'admin',
+  'citas',
+  'consultar',
+  'entrar',
+  // `invitacion` y `pago` todavía no tienen pantalla, pero el API ya manda esas
+  // direcciones por correo y como retorno de la pasarela.
+  'invitacion',
+  'mis-bonos',
+  'mis-citas',
+  'nueva-contrasena',
+  'pago',
+  'perfil',
+  'recuperar',
+  'registro',
+  'reservar',
+  'verificar-correo',
+  // Servidor y ficheros estáticos.
+  'api',
+  'assets',
+  'docs',
+  'health',
+  'favicon',
+  'manifest',
+  'robots',
+  'sw',
+  'workbox',
+] as const;
+
+export function isReservedSlug(slug: string): boolean {
+  return (RESERVED_SLUGS as readonly string[]).includes(slug.toLowerCase());
+}
+
+/** Slug de organización: además del formato, no puede ser un nombre reservado. */
+export const organizationSlugSchema = slugSchema.refine((value) => !isReservedSlug(value), {
+  message: 'Esa dirección está reservada por la aplicación. Elige otra.',
+});
+
 export const emailSchema = z.string().email().max(255).toLowerCase().trim();
 
 export const phoneSchema = z

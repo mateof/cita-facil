@@ -18,6 +18,7 @@ import {
   minuteOfDaySchema,
   moneySchema,
   phoneSchema,
+  organizationSlugSchema,
   slugSchema,
   timezoneSchema,
 } from './common.js';
@@ -70,7 +71,7 @@ export type OrganizationSettings = z.infer<typeof organizationSettingsSchema>;
 
 export const createOrganizationSchema = z.object({
   name: z.string().min(2).max(140).trim(),
-  slug: slugSchema.optional(),
+  slug: organizationSlugSchema.optional(),
   timezone: timezoneSchema.default('Europe/Madrid'),
   locale: localeSchema.default('es'),
   currency: currencySchema,

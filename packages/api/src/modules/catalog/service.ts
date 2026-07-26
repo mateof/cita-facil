@@ -7,6 +7,7 @@ import type {
   ScheduleExceptionInput,
   ScheduleRule,
 } from '@cita-facil/shared';
+import { isReservedSlug } from '@cita-facil/shared';
 import { db } from '../../db/index.js';
 import { newId } from '../../lib/ids.js';
 import { isoNow } from '../../lib/dates.js';
@@ -249,6 +250,10 @@ async function uniqueSlug(
   const clean = slugify(base);
   for (let attempt = 0; attempt < 50; attempt += 1) {
     const candidate = attempt === 0 ? clean : `${clean}-${attempt + 1}`;
+    // Una organización se sirve en la raíz (`/peluqueria`), así que un nombre
+    // reservado dejaría inaccesible una pantalla de la aplicación. Se trata
+    // como ocupado para que el bucle pruebe con el siguiente.
+    if (table === 'organizations' && isReservedSlug(candidate)) continue;
     let query = db().selectFrom(table).select(['id']).where('slug', '=', candidate);
     if (excludeId) query = query.where('id', '!=', excludeId);
     const clash = await query.executeTakeFirst();
