@@ -1,0 +1,109 @@
+###############################################################################
+# Integración continua
+#
+# Se ejecuta en las propuestas de cambio contra `develop` y `main`, y también al
+# empujar a esas ramas, para que el estado de la rama protegida se vea siempre y
+# no solo cuando alguien abre una propuesta.
+#
+# Son tres trabajos en paralelo. Separarlos hace que el fallo se lea de un
+# vistazo: si se cae "comprobaciones" es un problema de tipos o de estilo, si se
+# cae "backend" es lógica de dominio, y si se cae "e2e" es la aplicación real
+# vista desde el navegador.
+###############################################################################
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  # Permite lanzarlo a mano desde la pestaña Actions.
+  workflow_dispatch:
+
+# Una propuesta de cambio con varios empujones seguidos no necesita mantener las
+# ejecuciones antiguas: se queda con la última.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # La misma versión que usa la imagen de producción.
+  NODE_VERSION: '24'
+
+jobs:
+  comprobaciones:
+    name: Tipos y estilo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Comprobar tipos
+        run: npm run typecheck
+
+      - name: Estilo
+        run: npm run lint
+
+  backend:
+    name: Pruebas de backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Pruebas
+        run: npm test
+
+  e2e:
+    name: Pruebas end-to-end
+    runs-on: ubuntu-latest
+    # Compilar, arrancar el binario y recorrer la aplicación con dos navegadores
+    # lleva su tiempo; el tope evita que un cuelgue consuma minutos sin fin.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      # Solo Chromium: los dos proyectos de la suite (escritorio y móvil) usan
+      # el mismo motor, así que descargar Firefox y WebKit sería tiempo tirado.
+      - name: Instalar Chromium para Playwright
+        run: npx playwright install --with-deps chromium
+        working-directory: packages/web
+
+      # Las pruebas atacan al binario compilado, no al servidor de desarrollo.
+      - name: Compilar
+        run: npm run build
+
+      - name: Pruebas end-to-end
+        run: npm run test:e2e -w @cita-facil/web
+
+      # Capturas, vídeos y trazas de lo que haya fallado. Sin esto, un fallo que
+      # no se reproduce en local deja de ser diagnosticable.
+      - name: Guardar el rastro de los fallos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-fallos
+          path: packages/web/e2e/.results/
+          retention-days: 7
