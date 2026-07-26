@@ -12,6 +12,23 @@ test.describe('acceso', () => {
     await expect(page.getByRole('link', { name: /Google/ })).toHaveCount(0);
   });
 
+  /**
+   * El certificado lo pide el servidor en el apretón de manos TLS, así que por
+   * http:// el navegador nunca llega a preguntar por él. La suite corre sin
+   * TLS, igual que un entorno de desarrollo.
+   */
+  test('sin HTTPS, el acceso con certificado se ofrece pero no se puede usar', async ({ page }) => {
+    await page.goto('/entrar');
+
+    await expect(page.getByRole('button', { name: 'Entrar con DNIe o certificado' })).toBeDisabled();
+  });
+
+  test('sin HTTPS, se explica por qué no se puede usar el certificado', async ({ page }) => {
+    await page.goto('/entrar');
+
+    await expect(page.getByText(/necesita HTTPS/i)).toBeVisible();
+  });
+
   test('entra con correo y contraseña', async ({ page }) => {
     await entrar(page, CUENTAS.cliente);
     await expect(page.getByRole('heading', { name: 'Mis citas' })).toBeVisible();

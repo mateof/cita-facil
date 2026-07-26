@@ -215,8 +215,11 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       if (!pem) {
+        // El certificado lo pide el servidor en el apretón de manos TLS, así
+        // que por HTTP nunca llega ninguno: el error casi siempre es que falta
+        // el proxy de TLS mutuo por delante, no que la persona hiciera algo mal.
         throw new BadRequestError(
-          'No se ha recibido ningún certificado de cliente',
+          'No se ha recibido ningún certificado de cliente. Este acceso necesita HTTPS con el proxy de TLS mutuo por delante; ver docs/autenticacion.md',
           'cert_missing',
         );
       }

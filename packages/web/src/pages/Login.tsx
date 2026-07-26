@@ -111,6 +111,14 @@ export default function Login() {
     }
   };
 
+  /**
+   * El certificado no lo pide la aplicación, lo pide el servidor durante el
+   * apretón de manos TLS. Sin HTTPS el navegador nunca llega a preguntar por
+   * él, así que pulsar el botón solo puede acabar en "no se ha recibido ningún
+   * certificado". Mejor decirlo antes que dejar que se estrelle.
+   */
+  const certificadoPosible = window.location.protocol === 'https:';
+
   const handleCertificate = async () => {
     setError(null);
     setBusy('certificate');
@@ -228,13 +236,18 @@ export default function Login() {
                   <Button
                     variant="secondary"
                     fullWidth
+                    disabled={!certificadoPosible}
                     loading={busy === 'certificate'}
                     onClick={handleCertificate}
                     icon={<IdCard className="size-4" />}
                   >
                     {t('auth.withCertificate')}
                   </Button>
-                  <p className="text-xs text-slate-500">{t('auth.certificateHelp')}</p>
+                  <p className="text-xs text-slate-500">
+                    {certificadoPosible
+                      ? t('auth.certificateHelp')
+                      : t('auth.certificateNeedsHttps')}
+                  </p>
                 </>
               )}
 

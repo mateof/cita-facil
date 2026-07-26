@@ -105,6 +105,8 @@ export default {
     verifyEmailTitle: 'Confirm your email',
     verifyEmailSent: 'We sent you a confirmation link.',
     verifyEmailDone: 'Email confirmed. Your account is ready.',
+    certificateNeedsHttps:
+      'This method needs HTTPS with the certificate proxy in front. Over http:// the browser is never asked for a certificate.',
     certificateHelp:
       'You will be asked to choose your certificate. It must be installed in the browser, or your eID card inserted in the reader.',
     passkeyUnsupported: 'This device does not support passkeys.',
@@ -700,7 +702,8 @@ export default {
     cert_untrusted: 'The certificate is not issued by a recognised authority.',
     cert_expired: 'The certificate has expired.',
     cert_revoked: 'The certificate has been revoked.',
-    cert_missing: 'No certificate was received.',
+    cert_missing:
+      'No certificate was received. Signing in with a national ID or certificate needs HTTPS with the mutual TLS proxy in front.',
     cert_no_account: 'No account is linked to that certificate.',
     payments_disabled: 'Payments are not enabled.',
     internal_error: 'Something unexpected went wrong.',

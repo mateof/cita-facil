@@ -106,6 +106,8 @@ export default {
     verifyEmailTitle: 'Confirma tu correo',
     verifyEmailSent: 'Te hemos enviado un enlace de confirmación.',
     verifyEmailDone: 'Correo confirmado. Ya puedes usar tu cuenta.',
+    certificateNeedsHttps:
+      'Este acceso necesita HTTPS con el proxy de certificado configurado. Por http:// el navegador no llega a pedir el certificado.',
     certificateHelp:
       'Se te pedirá que elijas tu certificado. Necesitas tenerlo instalado en el navegador o el DNIe insertado en el lector.',
     passkeyUnsupported: 'Este dispositivo no admite passkeys.',
@@ -701,7 +703,8 @@ export default {
     cert_untrusted: 'El certificado no lo emite una autoridad reconocida.',
     cert_expired: 'El certificado ha caducado.',
     cert_revoked: 'El certificado está revocado.',
-    cert_missing: 'No se ha recibido ningún certificado.',
+    cert_missing:
+      'No se ha recibido ningún certificado. El acceso con DNIe o certificado necesita HTTPS con el proxy de TLS mutuo por delante.',
     cert_no_account: 'No hay ninguna cuenta asociada a ese certificado.',
     payments_disabled: 'Los pagos no están activos.',
     internal_error: 'Se ha producido un error inesperado.',
