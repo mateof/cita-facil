@@ -20,17 +20,18 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-COPY package.json package-lock.json ./
+COPY package.json ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/api/package.json packages/api/
 COPY packages/web/package.json packages/web/
 
-# No se usa `npm ci` porque el fichero de bloqueo se genera en Windows y npm no
-# guarda en él los binarios nativos de otras plataformas (npm/cli#4828): la
-# compilación del frontend se quedaría sin los de rollup, lightningcss y
-# esbuild. Al resolver aquí se instalan los de esta imagen.
+# El fichero de bloqueo no se copia a propósito, y por eso tampoco se usa
+# `npm ci`: se genera en Windows y npm no guarda en él los binarios nativos de
+# otras plataformas (npm/cli#4828). Con él presente, npm resuelve desde el
+# fichero y la compilación del frontend se queda sin los binarios de rollup,
+# lightningcss y esbuild. Resolviendo aquí se instalan los de esta imagen.
 #
-# Si algún día el fichero de bloqueo se genera en Linux, esto vuelve a ser
+# Cuando el fichero de bloqueo se genere en Linux, se vuelve a copiarlo y a usar
 # `npm ci`, que es más rápido y reproducible.
 RUN npm install --no-audit --no-fund
 
