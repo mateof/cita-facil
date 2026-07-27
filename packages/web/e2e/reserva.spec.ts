@@ -101,7 +101,10 @@ test.describe('reserva pública', () => {
     await entrar(page, CUENTAS.cliente);
     await page.goto(`/${ORGANIZACION_SLUG}?servicio=${servicio.id}`);
 
-    await page.locator('[data-testid="dia"][data-disponible="si"]').first().click();
+    // El día se elige por su fecha, no "el primero con hueco": si no, según la
+    // hora a la que se ejecute la suite la interfaz podría reservar en hoy
+    // mientras la comprobación mira mañana, y el recuento no bajaría.
+    await page.locator(`[data-testid="dia"][data-date="${dia}"]`).click();
     await page.locator('[data-testid="hueco"]').first().click();
     await page.getByRole('button', { name: 'Confirmar reserva' }).click();
     await expect(page.getByRole('heading', { name: '¡Cita confirmada!' })).toBeVisible();

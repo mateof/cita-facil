@@ -1,5 +1,21 @@
 /** Traducións en galego. */
 export default {
+  avatar: {
+    fieldLabel: 'Imaxe ou icona',
+    preview: 'Así se verá',
+    precedence: 'Manda a imaxe; sen ela, a icona; e sen icona, as iniciais.',
+    image: 'Imaxe',
+    icon: 'Icona',
+    initials: 'Iniciais',
+    uploadImage: 'Subir imaxe',
+    replaceImage: 'Cambiar imaxe',
+    removeImage: 'Quitar imaxe',
+    imageHint: 'PNG, JPEG, WebP ou GIF, ata 2 MB.',
+    searchIcon: 'Buscar icona',
+    removeIcon: 'Quitar icona',
+    initialsHint: 'Calcúlanse do nome: {{initials}}.',
+    automaticColor: 'Cor automática',
+  },
   common: {
     appName: 'CitaFácil',
     loading: 'Cargando…',

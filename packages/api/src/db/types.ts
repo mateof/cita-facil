@@ -79,6 +79,9 @@ export interface OrganizationsTable {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  image_url: string | null;
+  icon: string | null;
+  color: string | null;
 }
 
 export interface LocationsTable {
@@ -103,6 +106,9 @@ export interface LocationsTable {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  image_url: string | null;
+  icon: string | null;
+  color: string | null;
 }
 
 /** Ajustes por organización que no caben en columnas fijas (pagos, marca, etc.). */
@@ -153,6 +159,8 @@ export interface UsersTable {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  icon: string | null;
+  color: string | null;
 }
 
 export interface IdentitiesTable {
@@ -291,6 +299,8 @@ export interface ServiceCategoriesTable {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  image_url: string | null;
+  icon: string | null;
 }
 
 export interface ServicesTable {
@@ -339,6 +349,7 @@ export interface ServicesTable {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  icon: string | null;
 }
 
 export interface ServiceResourcesTable {
@@ -366,6 +377,7 @@ export interface ResourcesTable {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  icon: string | null;
 }
 
 export interface SchedulesTable {
@@ -667,6 +679,9 @@ export interface CreditPacksTable {
   active: number;
   created_at: string;
   updated_at: string;
+  image_url: string | null;
+  icon: string | null;
+  color: string | null;
 }
 
 export interface CreditWalletsTable {

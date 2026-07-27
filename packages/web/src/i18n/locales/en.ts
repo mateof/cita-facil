@@ -1,5 +1,21 @@
 /** English translations. */
 export default {
+  avatar: {
+    fieldLabel: 'Image or icon',
+    preview: 'How it will look',
+    precedence: 'The image wins; without it, the icon; without an icon, the initials.',
+    image: 'Image',
+    icon: 'Icon',
+    initials: 'Initials',
+    uploadImage: 'Upload image',
+    replaceImage: 'Replace image',
+    removeImage: 'Remove image',
+    imageHint: 'PNG, JPEG, WebP or GIF, up to 2 MB.',
+    searchIcon: 'Search icon',
+    removeIcon: 'Remove icon',
+    initialsHint: 'Taken from the name: {{initials}}.',
+    automaticColor: 'Automatic colour',
+  },
   common: {
     appName: 'CitaFácil',
     loading: 'Loading…',

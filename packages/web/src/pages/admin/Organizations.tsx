@@ -18,12 +18,16 @@ import {
   Select,
 } from '../../components/ui.tsx';
 import { Combobox } from '../../components/combobox.tsx';
+import { AvatarPicker } from '../../components/avatar-picker.tsx';
 
 interface OrganizationRow extends ManageableOrganization {
   timezone: string;
   locale: string;
   currency: string;
   status: string;
+  imageUrl: string | null;
+  icon: string | null;
+  color: string | null;
 }
 
 interface OrganizationUsage {
@@ -43,6 +47,9 @@ type Draft = {
   email?: string;
   phone?: string;
   taxId?: string;
+  imageUrl?: string | null;
+  icon?: string | null;
+  color?: string | null;
 };
 
 function emptyDraft(locale: string): Draft {
@@ -88,6 +95,9 @@ export default function Organizations() {
         email: input.email || undefined,
         phone: input.phone || undefined,
         taxId: input.taxId || undefined,
+        imageUrl: input.imageUrl ?? null,
+        icon: input.icon ?? null,
+        color: input.color ?? null,
       };
       return input.id
         ? api.patch<OrganizationRow>(`/organizations/${input.id}`, body)
@@ -172,6 +182,9 @@ export default function Organizations() {
                       timezone: organization.timezone,
                       locale: organization.locale,
                       currency: organization.currency,
+                      imageUrl: organization.imageUrl,
+                      icon: organization.icon,
+                      color: organization.color,
                     })
                   }
                 >
@@ -254,6 +267,16 @@ function OrganizationForm({
           value={draft.name}
           onChange={(event) => set({ name: event.target.value })}
           placeholder={t('admin.organizations.namePlaceholder')}
+        />
+      </Field>
+
+      <Field label={t('avatar.fieldLabel')}>
+        <AvatarPicker
+          name={draft.name ?? ''}
+          target="organization"
+          organizationId={draft.id ?? null}
+          value={{ imageUrl: draft.imageUrl, icon: draft.icon, color: draft.color }}
+          onChange={(avatar) => set(avatar)}
         />
       </Field>
 

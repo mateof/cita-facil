@@ -20,6 +20,8 @@ import {
   Switch,
   Textarea,
 } from '../../components/ui.tsx';
+import { AvatarPicker } from '../../components/avatar-picker.tsx';
+import { EntityAvatar } from '../../components/avatar.tsx';
 
 type Draft = Partial<AdminService> & { descriptionText?: string };
 
@@ -111,10 +113,10 @@ export default function Services() {
       <ul className="space-y-2">
         {services.data?.map((service) => (
           <Card as="li" key={service.id} className="flex flex-wrap items-center gap-3">
-            <span
-              className="h-10 w-1.5 rounded-full"
-              style={{ background: service.color ?? 'var(--brand)' }}
-              aria-hidden
+            <EntityAvatar
+              name={service.name}
+              avatar={{ imageUrl: service.imageUrl, icon: service.icon, color: service.color }}
+              square
             />
 
             <div className="min-w-0 flex-1">
@@ -223,6 +225,7 @@ function ServiceForm({
   onChange: (draft: Draft) => void;
 }) {
   const { t } = useTranslation();
+  const organizationId = useAuth((state) => state.activeOrganizationId);
   const set = (patch: Partial<Draft>) => onChange({ ...draft, ...patch });
 
   return (
@@ -231,6 +234,16 @@ function ServiceForm({
 
       <Field label={t('admin.services.name')} required>
         <Input value={draft.name ?? ''} onChange={(event) => set({ name: event.target.value })} />
+      </Field>
+
+      <Field label={t('avatar.fieldLabel')}>
+        <AvatarPicker
+          name={draft.name ?? ''}
+          target="service"
+          organizationId={organizationId}
+          value={{ imageUrl: draft.imageUrl, icon: draft.icon, color: draft.color }}
+          onChange={(avatar) => set(avatar)}
+        />
       </Field>
 
       <Field label={t('admin.services.description')}>

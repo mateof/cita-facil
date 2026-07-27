@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Ban, Pencil, Plus, RotateCcw, Ticket, Trash2, UserPlus } from 'lucide-react';
+import { Ban, Pencil, Plus, RotateCcw, Trash2, UserPlus } from 'lucide-react';
 import { api } from '../../lib/api.ts';
 import { useAuth } from '../../stores/auth.ts';
 import { formatDate, formatMoney } from '../../lib/format.ts';
@@ -28,6 +28,8 @@ import {
 } from '../../components/ui.tsx';
 import { Combobox } from '../../components/combobox.tsx';
 import { CustomerPicker, toOptions } from '../../components/pickers.tsx';
+import { AvatarPicker } from '../../components/avatar-picker.tsx';
+import { EntityAvatar } from '../../components/avatar.tsx';
 
 /**
  * Bonos: series de sesiones prepagadas.
@@ -108,6 +110,9 @@ function PacksTab() {
         onlinePurchase: input.onlinePurchase,
         sortOrder: input.sortOrder,
         active: input.active,
+        imageUrl: input.imageUrl ?? null,
+        icon: input.icon ?? null,
+        color: input.color ?? null,
       };
       return input.id
         ? api.patch(`/organizations/${organizationId}/credit-packs/${input.id}`, body)
@@ -145,7 +150,11 @@ function PacksTab() {
       <ul className="space-y-2">
         {packs.data?.map((pack) => (
           <Card as="li" key={pack.id} className="flex flex-wrap items-center gap-3">
-            <Ticket className="size-5 shrink-0 text-brand" aria-hidden />
+            <EntityAvatar
+              name={pack.name}
+              avatar={{ imageUrl: pack.imageUrl, icon: pack.icon, color: pack.color }}
+              square
+            />
 
             <div className="min-w-0 flex-1">
               <p className="flex flex-wrap items-center gap-2 font-semibold">
@@ -241,6 +250,7 @@ function PackForm({
   onChange: (draft: PackDraft) => void;
 }) {
   const { t } = useTranslation();
+  const organizationId = useAuth((state) => state.activeOrganizationId);
   const set = (patch: PackDraft) => onChange({ ...draft, ...patch });
 
   return (
@@ -249,6 +259,16 @@ function PackForm({
 
       <Field label={t('admin.credits.packName')} required>
         <Input value={draft.name ?? ''} onChange={(event) => set({ name: event.target.value })} />
+      </Field>
+
+      <Field label={t('avatar.fieldLabel')}>
+        <AvatarPicker
+          name={draft.name ?? ''}
+          target="credit_pack"
+          organizationId={organizationId}
+          value={{ imageUrl: draft.imageUrl, icon: draft.icon, color: draft.color }}
+          onChange={(avatar) => set(avatar)}
+        />
       </Field>
 
       <Field label={t('admin.services.description')}>

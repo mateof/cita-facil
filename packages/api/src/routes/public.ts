@@ -61,7 +61,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
     async () => {
       const rows = await db()
         .selectFrom('organizations')
-        .select(['id', 'slug', 'name', 'settings_json', 'timezone'])
+        .select(['id', 'slug', 'name', 'settings_json', 'timezone', 'image_url', 'icon', 'color'])
         .where('status', '=', 'active')
         .where('deleted_at', 'is', null)
         .orderBy('name')
@@ -83,6 +83,9 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           slug: row.slug,
           name: row.name,
           timezone: row.timezone,
+          imageUrl: row.image_url,
+          icon: row.icon,
+          color: row.color,
         }));
     },
   );
@@ -170,6 +173,9 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           },
           allowGuestBooking,
           waitlistEnabled: settings.waitlistEnabled !== false,
+          imageUrl: organization.imageUrl,
+          icon: organization.icon,
+          color: organization.color,
         },
         // Solo los títulos: el contenido se pide al abrir la página, que es
         // texto largo y no hace falta en cada visita a la reserva.
@@ -185,6 +191,9 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           phone: location.phone,
           timezone: location.timezone,
           description: pickI18n(location.description, locale),
+          imageUrl: location.imageUrl,
+          icon: location.icon,
+          color: location.color,
         })),
         categories,
         services: services.map((service) => ({
@@ -195,6 +204,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           description: pickI18n(service.description, locale),
           color: service.color,
           imageUrl: service.imageUrl,
+          icon: service.icon,
           durationMode: service.durationMode,
           durationMinutes: service.durationMinutes,
           minDurationMinutes: service.minDurationMinutes,
@@ -223,6 +233,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
             type: resource.type,
             color: resource.color,
             imageUrl: resource.imageUrl,
+            icon: resource.icon,
             capacity: resource.capacity,
           })),
       };

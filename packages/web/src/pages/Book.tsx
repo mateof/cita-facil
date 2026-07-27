@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { api, ApiError } from '../lib/api.ts';
+import { EntityAvatar } from '../components/avatar.tsx';
 import {
   addDaysIso,
   formatDate,
@@ -313,10 +314,10 @@ function ServiceStep({
                   data-servicio={service.id}
                   className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-brand hover:shadow-sm"
                 >
-                  <span
-                    className="h-12 w-1.5 shrink-0 rounded-full"
-                    style={{ background: service.color ?? 'var(--brand)' }}
-                    aria-hidden
+                  <EntityAvatar
+                    name={service.name}
+                    avatar={{ imageUrl: service.imageUrl, icon: service.icon, color: service.color }}
+                    square
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold text-slate-900">{service.name}</span>

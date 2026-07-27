@@ -2,6 +2,7 @@ import type {
   CreateLocationInput,
   CreateOrganizationInput,
   CreateResourceInput,
+  CreateServiceCategoryInput,
   CreateServiceInput,
   I18nText,
   ScheduleExceptionInput,
@@ -39,6 +40,9 @@ export interface OrganizationView {
   settings: Record<string, unknown>;
   status: string;
   createdAt: string;
+  imageUrl: string | null;
+  icon: string | null;
+  color: string | null;
 }
 
 function parseJson<T>(value: string | null, fallback: T): T {
@@ -71,6 +75,9 @@ export async function createOrganization(
       phone: input.phone ?? null,
       tax_id: input.taxId ?? null,
       settings_json: input.settings ? JSON.stringify(input.settings) : null,
+      image_url: input.imageUrl ?? null,
+      icon: input.icon ?? null,
+      color: input.color ?? null,
       status: 'active',
       created_at: now,
       updated_at: now,
@@ -138,6 +145,9 @@ function mapOrganization(row: {
   settings_json: string | null;
   status: string;
   created_at: string;
+  image_url: string | null;
+  icon: string | null;
+  color: string | null;
 }): OrganizationView {
   return {
     id: row.id,
@@ -152,6 +162,9 @@ function mapOrganization(row: {
     settings: parseJson<Record<string, unknown>>(row.settings_json, {}),
     status: row.status,
     createdAt: row.created_at,
+    imageUrl: row.image_url,
+    icon: row.icon,
+    color: row.color,
   };
 }
 
@@ -167,6 +180,9 @@ export async function updateOrganization(
   if (patch.email !== undefined) update.email = patch.email;
   if (patch.phone !== undefined) update.phone = patch.phone;
   if (patch.taxId !== undefined) update.tax_id = patch.taxId;
+  if (patch.imageUrl !== undefined) update.image_url = patch.imageUrl;
+  if (patch.icon !== undefined) update.icon = patch.icon;
+  if (patch.color !== undefined) update.color = patch.color;
   if (patch.slug !== undefined) update.slug = await uniqueSlug('organizations', patch.slug, id);
   if (patch.settings !== undefined) {
     const current = await getOrganization(id);
@@ -284,6 +300,9 @@ export interface LocationView {
   description: I18nText | null;
   active: boolean;
   sortOrder: number;
+  imageUrl: string | null;
+  icon: string | null;
+  color: string | null;
 }
 
 export async function createLocation(
@@ -314,6 +333,9 @@ export async function createLocation(
       phone: input.phone ?? null,
       email: input.email ?? null,
       description_json: input.description ? JSON.stringify(input.description) : null,
+      image_url: input.imageUrl ?? null,
+      icon: input.icon ?? null,
+      color: input.color ?? null,
       active: input.active === false ? 0 : 1,
       sort_order: 0,
       created_at: now,
@@ -354,6 +376,9 @@ function mapLocation(row: any): LocationView {
     description: parseJson<I18nText | null>(row.description_json, null),
     active: row.active === 1,
     sortOrder: row.sort_order,
+    imageUrl: row.image_url,
+    icon: row.icon,
+    color: row.color,
   };
 }
 
@@ -388,6 +413,9 @@ export async function updateLocation(
   if (patch.phone !== undefined) update.phone = patch.phone;
   if (patch.email !== undefined) update.email = patch.email;
   if (patch.description !== undefined) update.description_json = JSON.stringify(patch.description);
+  if (patch.imageUrl !== undefined) update.image_url = patch.imageUrl;
+  if (patch.icon !== undefined) update.icon = patch.icon;
+  if (patch.color !== undefined) update.color = patch.color;
   if (patch.active !== undefined) update.active = patch.active ? 1 : 0;
 
   await db().updateTable('locations').set(update).where('id', '=', id).execute();
@@ -432,6 +460,7 @@ export interface ResourceView {
   capacity: number;
   color: string | null;
   imageUrl: string | null;
+  icon: string | null;
   bookableDirectly: boolean;
   sortOrder: number;
   active: boolean;
@@ -449,6 +478,7 @@ function mapResource(row: any): ResourceView {
     capacity: row.capacity,
     color: row.color,
     imageUrl: row.image_url,
+    icon: row.icon,
     bookableDirectly: row.bookable_directly === 1,
     sortOrder: row.sort_order,
     active: row.active === 1,
@@ -479,6 +509,7 @@ export async function createResource(
       capacity: input.capacity,
       color: input.color ?? null,
       image_url: input.imageUrl ?? null,
+      icon: input.icon ?? null,
       bookable_directly: input.bookableDirectly === false ? 0 : 1,
       sort_order: input.sortOrder,
       active: input.active === false ? 0 : 1,
@@ -534,6 +565,7 @@ export async function updateResource(
   if (patch.capacity !== undefined) update.capacity = patch.capacity;
   if (patch.color !== undefined) update.color = patch.color;
   if (patch.imageUrl !== undefined) update.image_url = patch.imageUrl;
+  if (patch.icon !== undefined) update.icon = patch.icon;
   if (patch.bookableDirectly !== undefined) update.bookable_directly = patch.bookableDirectly ? 1 : 0;
   if (patch.sortOrder !== undefined) update.sort_order = patch.sortOrder;
   if (patch.active !== undefined) update.active = patch.active ? 1 : 0;
@@ -569,6 +601,7 @@ export interface ServiceView {
   description: I18nText | null;
   color: string | null;
   imageUrl: string | null;
+  icon: string | null;
   durationMode: string;
   durationMinutes: number;
   minDurationMinutes: number | null;
@@ -610,6 +643,7 @@ function mapService(row: any, resourceIds: string[] = []): ServiceView {
     description: parseJson<I18nText | null>(row.description_json, null),
     color: row.color,
     imageUrl: row.image_url,
+    icon: row.icon,
     durationMode: row.duration_mode,
     durationMinutes: row.duration_minutes,
     minDurationMinutes: row.min_duration_minutes,
@@ -662,6 +696,7 @@ export async function createService(
       description_json: input.description ? JSON.stringify(input.description) : null,
       color: input.color ?? null,
       image_url: input.imageUrl ?? null,
+      icon: input.icon ?? null,
       duration_mode: input.durationMode,
       duration_minutes: input.durationMinutes,
       min_duration_minutes: input.minDurationMinutes ?? null,
@@ -815,6 +850,7 @@ export async function updateService(
     name: 'name',
     color: 'color',
     imageUrl: 'image_url',
+    icon: 'icon',
     durationMode: 'duration_mode',
     durationMinutes: 'duration_minutes',
     minDurationMinutes: 'min_duration_minutes',
@@ -922,13 +958,15 @@ export async function listCategories(organizationId: string) {
     name: row.name,
     nameI18n: parseJson<I18nText | null>(row.name_i18n_json, null),
     color: row.color,
+    imageUrl: row.image_url,
+    icon: row.icon,
     sortOrder: row.sort_order,
   }));
 }
 
 export async function createCategory(
   organizationId: string,
-  input: { name: string; nameI18n?: I18nText; color?: string; sortOrder?: number },
+  input: CreateServiceCategoryInput,
 ) {
   const id = newId();
   const now = isoNow();
@@ -940,6 +978,8 @@ export async function createCategory(
       name: input.name,
       name_i18n_json: input.nameI18n ? JSON.stringify(input.nameI18n) : null,
       color: input.color ?? null,
+      image_url: input.imageUrl ?? null,
+      icon: input.icon ?? null,
       sort_order: input.sortOrder ?? 0,
       created_at: now,
       updated_at: now,

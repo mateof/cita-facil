@@ -168,6 +168,11 @@ export const api = {
     request<T>(path, { ...options, method: 'PATCH', body }),
   delete: <T>(path: string, options?: RequestOptions) =>
     request<T>(path, { ...options, method: 'DELETE' }),
+  /**
+   * Sube un fichero. El cuerpo va como `FormData`, así que el navegador pone
+   * el `content-type` con su separador y aquí no se toca.
+   */
+  upload: <T>(path: string, body: FormData) => request<T>(path, { method: 'POST', body }),
   /** Descarga un fichero respetando la sesión actual. */
   download: async (path: string, filename: string): Promise<void> => {
     const response = await rawRequest(path);

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { avatarFieldsSchema } from './avatar.js';
 import { currencySchema, idSchema, moneySchema } from './common.js';
 
 /**
@@ -29,7 +30,7 @@ export const createCreditPackSchema = z.object({
   onlinePurchase: z.boolean().default(true),
   sortOrder: z.number().int().min(0).max(10_000).default(0),
   active: z.boolean().default(true),
-});
+}).merge(avatarFieldsSchema);
 export type CreateCreditPackInput = z.infer<typeof createCreditPackSchema>;
 
 export const updateCreditPackSchema = createCreditPackSchema.partial();
@@ -49,6 +50,9 @@ export const creditPackSchema = z.object({
   onlinePurchase: z.boolean(),
   sortOrder: z.number().int(),
   active: z.boolean(),
+  imageUrl: z.string().nullable(),
+  icon: z.string().nullable(),
+  color: z.string().nullable(),
   /** Bonos vivos emitidos de este tipo. Solo se rellena en el panel. */
   issuedCount: z.number().int().optional(),
 });

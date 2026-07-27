@@ -11,6 +11,12 @@ los cinco motores admitidos, y una copia hecha en SQLite se puede restaurar en
 PostgreSQL. Ese es justo el camino que sigue una instalación que empieza pequeña
 y crece.
 
+Además de las tablas, la copia lleva las **imágenes de las entidades**
+(logotipos, fotos de servicios y de recursos), que viven en el disco y no en la
+base de datos. Van al final del fichero, en base64. Sin ellas, una copia
+restaurada dejaría a los negocios sin logotipo. Ver
+[imágenes e iconos](imagenes.md).
+
 Nombre de fichero:
 
 ```

@@ -2,6 +2,9 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import {
+  colorSchema,
+  iconNameSchema,
+  imageUrlSchema,
   localeSchema,
   paginationSchema,
   registerPushDeviceSchema,
@@ -46,7 +49,9 @@ const meRoutes: FastifyPluginAsync = async (fastify) => {
           phone: z.string().max(32).nullable().optional(),
           locale: localeSchema.optional(),
           timezone: timezoneSchema.optional(),
-          avatarUrl: z.string().url().max(500).nullable().optional(),
+          avatarUrl: imageUrlSchema.nullable().optional(),
+          icon: iconNameSchema.nullable().optional(),
+          color: colorSchema.nullable().optional(),
           marketingOptIn: z.boolean().optional(),
           quietHoursStart: z.number().int().min(0).max(1440).nullable().optional(),
           quietHoursEnd: z.number().int().min(0).max(1440).nullable().optional(),
@@ -63,6 +68,8 @@ const meRoutes: FastifyPluginAsync = async (fastify) => {
       if (body.locale !== undefined) patch.locale = body.locale;
       if (body.timezone !== undefined) patch.timezone = body.timezone;
       if (body.avatarUrl !== undefined) patch.avatar_url = body.avatarUrl;
+      if (body.icon !== undefined) patch.icon = body.icon;
+      if (body.color !== undefined) patch.color = body.color;
       if (body.marketingOptIn !== undefined) patch.marketing_opt_in = body.marketingOptIn ? 1 : 0;
       if (body.quietHoursStart !== undefined) patch.quiet_hours_start = body.quietHoursStart;
       if (body.quietHoursEnd !== undefined) patch.quiet_hours_end = body.quietHoursEnd;

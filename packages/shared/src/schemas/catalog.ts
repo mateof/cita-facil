@@ -7,6 +7,7 @@ import {
   RESOURCE_TYPES,
   WEEKDAYS,
 } from '../enums.js';
+import { avatarFieldsSchema } from './avatar.js';
 import {
   colorSchema,
   currencySchema,
@@ -79,7 +80,7 @@ export const createOrganizationSchema = z.object({
   phone: phoneSchema.optional(),
   taxId: z.string().max(32).optional(),
   settings: organizationSettingsSchema.optional(),
-});
+}).merge(avatarFieldsSchema);
 export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
 
 export const updateOrganizationSchema = createOrganizationSchema.partial();
@@ -101,9 +102,9 @@ export const createLocationSchema = z.object({
   longitude: z.number().min(-180).max(180).optional(),
   phone: phoneSchema.optional(),
   email: emailSchema.optional(),
-  description: i18nTextSchema.optional(),
+  description: i18nTextSchema.nullish(),
   active: z.boolean().default(true),
-});
+}).merge(avatarFieldsSchema);
 export type CreateLocationInput = z.infer<typeof createLocationSchema>;
 export const updateLocationSchema = createLocationSchema.partial();
 
@@ -115,18 +116,16 @@ export const createResourceSchema = z.object({
   locationId: idSchema,
   name: z.string().min(1).max(140).trim(),
   type: z.enum(RESOURCE_TYPES).default('staff'),
-  description: i18nTextSchema.optional(),
+  description: i18nTextSchema.nullish(),
   /** Personas que pueden usar el recurso a la vez (clases, pistas compartidas). */
   capacity: z.number().int().min(1).max(1000).default(1),
-  color: colorSchema.optional(),
-  imageUrl: z.string().url().max(500).optional(),
   /** Usuario del personal asociado, si el recurso es una persona. */
   userId: idSchema.nullable().optional(),
   /** Se puede reservar directamente eligiéndolo. */
   bookableDirectly: z.boolean().default(true),
   sortOrder: z.number().int().min(0).max(10_000).default(0),
   active: z.boolean().default(true),
-});
+}).merge(avatarFieldsSchema);
 export type CreateResourceInput = z.infer<typeof createResourceSchema>;
 export const updateResourceSchema = createResourceSchema.partial();
 
@@ -139,11 +138,9 @@ export const createServiceSchema = z
     /** `null` significa que el servicio está disponible en todas las sedes. */
     locationId: idSchema.nullable().optional(),
     name: z.string().min(1).max(140).trim(),
-    nameI18n: i18nTextSchema.optional(),
-    description: i18nTextSchema.optional(),
+    nameI18n: i18nTextSchema.nullish(),
+    description: i18nTextSchema.nullish(),
     categoryId: idSchema.nullable().optional(),
-    color: colorSchema.optional(),
-    imageUrl: z.string().url().max(500).optional(),
 
     /* Duración */
     durationMode: z.enum(DURATION_MODES).default('fixed'),
@@ -192,6 +189,7 @@ export const createServiceSchema = z
     sortOrder: z.number().int().min(0).max(10_000).default(0),
     active: z.boolean().default(true),
   })
+  .merge(avatarFieldsSchema)
   .superRefine((value, ctx) => {
     if (value.durationMode !== 'flexible') return;
     const min = value.minDurationMinutes ?? value.durationMinutes;
@@ -216,12 +214,14 @@ export type CreateServiceInput = z.infer<typeof createServiceSchema>;
 /** Versión parcial para PATCH. `superRefine` se aplica de nuevo en el servicio. */
 export const updateServiceSchema = createServiceSchema.innerType().partial();
 
-export const createServiceCategorySchema = z.object({
-  name: z.string().min(1).max(120),
-  nameI18n: i18nTextSchema.optional(),
-  color: colorSchema.optional(),
-  sortOrder: z.number().int().min(0).max(10_000).default(0),
-});
+export const createServiceCategorySchema = z
+  .object({
+    name: z.string().min(1).max(120),
+    nameI18n: i18nTextSchema.nullish(),
+    sortOrder: z.number().int().min(0).max(10_000).default(0),
+  })
+  .merge(avatarFieldsSchema);
+export type CreateServiceCategoryInput = z.infer<typeof createServiceCategorySchema>;
 
 /* -------------------------------------------------------------------------- */
 /* Horarios                                                                    */

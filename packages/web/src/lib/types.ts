@@ -127,6 +127,7 @@ export interface PublicService {
   description: string;
   color: string | null;
   imageUrl: string | null;
+  icon: string | null;
   durationMode: 'fixed' | 'flexible';
   durationMinutes: number;
   minDurationMinutes: number | null;
@@ -277,6 +278,8 @@ export interface AdminService {
   name: string;
   description: Record<string, string> | null;
   color: string | null;
+  imageUrl: string | null;
+  icon: string | null;
   durationMode: 'fixed' | 'flexible';
   durationMinutes: number;
   minDurationMinutes: number | null;
@@ -314,6 +317,8 @@ export interface AdminResource {
   type: string;
   capacity: number;
   color: string | null;
+  imageUrl: string | null;
+  icon: string | null;
   bookableDirectly: boolean;
   sortOrder: number;
   active: boolean;
@@ -399,6 +404,9 @@ export interface CreditPack {
   active: boolean;
   /** Bonos vivos emitidos de este tipo. Solo llega en el panel. */
   issuedCount?: number;
+  imageUrl: string | null;
+  icon: string | null;
+  color: string | null;
 }
 
 export type CreditWalletStatus = 'active' | 'exhausted' | 'expired' | 'cancelled';

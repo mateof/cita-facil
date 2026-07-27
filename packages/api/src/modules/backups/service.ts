@@ -7,6 +7,7 @@ import { Readable } from 'node:stream';
 import { createInterface } from 'node:readline';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import { env } from '../../config/env.js';
+import { listUploads, readUpload, restoreUpload } from '../uploads/service.js';
 import { db } from '../../db/index.js';
 import { deriveKey } from '../../lib/crypto.js';
 import { isoNow } from '../../lib/dates.js';
@@ -157,6 +158,16 @@ async function* exportLines(): AsyncGenerator<string> {
     for (const row of rows) {
       yield `${JSON.stringify({ type: 'row', table, data: row })}\n`;
     }
+  }
+
+  // Las imágenes de las entidades viven en el disco, no en la base de datos, y
+  // sin ellas una copia restaurada dejaría a los servicios y a los negocios sin
+  // su logotipo. Van en base64 al final, que es donde menos estorban si alguien
+  // lee el fichero a mano.
+  for (const ruta of await listUploads()) {
+    const contenido = await readUpload(ruta).catch(() => null);
+    if (!contenido) continue;
+    yield `${JSON.stringify({ type: 'file', path: ruta, data: contenido.bytes.toString('base64') })}\n`;
   }
 
   yield `${JSON.stringify({ type: 'end' })}\n`;
@@ -315,6 +326,8 @@ export interface RestoreResult {
   tables: number;
   rows: number;
   skipped: string[];
+  /** Imágenes de entidades restauradas junto a las tablas. */
+  files: number;
 }
 
 /**
@@ -361,6 +374,7 @@ export async function restoreBackup(
   const buffers = new Map<string, Record<string, unknown>[]>();
   const seenTables = new Set<string>();
   let rows = 0;
+  let files = 0;
 
   const flush = async (table: string): Promise<void> => {
     const pending = buffers.get(table);
@@ -374,6 +388,11 @@ export async function restoreBackup(
     const entry = JSON.parse(line) as Record<string, any>;
 
     if (entry.type === 'header' || entry.type === 'table' || entry.type === 'end') continue;
+    if (entry.type === 'file') {
+      await restoreUpload(entry.path as string, Buffer.from(entry.data as string, 'base64'));
+      files += 1;
+      continue;
+    }
     if (entry.type === 'row') {
       const table = entry.table as string;
       if (skip.has(table)) continue;
@@ -391,8 +410,8 @@ export async function restoreBackup(
     await flush(table);
   }
 
-  logger.warn({ filename, rows, tables: seenTables.size }, 'Copia restaurada');
-  return { tables: seenTables.size, rows, skipped: [...skip] };
+  logger.warn({ filename, rows, files, tables: seenTables.size }, 'Copia restaurada');
+  return { tables: seenTables.size, rows, files, skipped: [...skip] };
 }
 
 export async function listBackups(): Promise<BackupRecord[]> {

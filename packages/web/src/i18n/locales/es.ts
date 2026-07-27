@@ -1,5 +1,21 @@
 /** Traducciones en español. Es el idioma de referencia: el resto lo replica. */
 export default {
+  avatar: {
+    fieldLabel: 'Imagen o icono',
+    preview: 'Así se verá',
+    precedence: 'Manda la imagen; sin ella, el icono; y sin icono, las iniciales.',
+    image: 'Imagen',
+    icon: 'Icono',
+    initials: 'Iniciales',
+    uploadImage: 'Subir imagen',
+    replaceImage: 'Cambiar imagen',
+    removeImage: 'Quitar imagen',
+    imageHint: 'PNG, JPEG, WebP o GIF, hasta 2 MB.',
+    searchIcon: 'Buscar icono',
+    removeIcon: 'Quitar icono',
+    initialsHint: 'Se calculan del nombre: {{initials}}.',
+    automaticColor: 'Color automático',
+  },
   common: {
     appName: 'CitaFácil',
     loading: 'Cargando…',

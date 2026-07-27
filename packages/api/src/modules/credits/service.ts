@@ -70,6 +70,9 @@ interface PackRow {
   online_purchase: number;
   sort_order: number;
   active: number;
+  image_url: string | null;
+  icon: string | null;
+  color: string | null;
 }
 
 function toPack(row: PackRow, names: Map<string, string>, issuedCount?: number): CreditPack {
@@ -87,6 +90,9 @@ function toPack(row: PackRow, names: Map<string, string>, issuedCount?: number):
     onlinePurchase: row.online_purchase === 1,
     sortOrder: row.sort_order,
     active: row.active === 1,
+    imageUrl: row.image_url,
+    icon: row.icon,
+    color: row.color,
     ...(issuedCount === undefined ? {} : { issuedCount }),
   };
 }
@@ -185,6 +191,9 @@ export async function createPack(
       online_purchase: input.onlinePurchase ? 1 : 0,
       sort_order: input.sortOrder,
       active: input.active ? 1 : 0,
+      image_url: input.imageUrl ?? null,
+      icon: input.icon ?? null,
+      color: input.color ?? null,
       created_at: now,
       updated_at: now,
     })
@@ -223,6 +232,9 @@ export async function updatePack(
   if (input.onlinePurchase !== undefined) changes.online_purchase = input.onlinePurchase ? 1 : 0;
   if (input.sortOrder !== undefined) changes.sort_order = input.sortOrder;
   if (input.active !== undefined) changes.active = input.active ? 1 : 0;
+  if (input.imageUrl !== undefined) changes.image_url = input.imageUrl;
+  if (input.icon !== undefined) changes.icon = input.icon;
+  if (input.color !== undefined) changes.color = input.color;
 
   await db().updateTable('credit_packs').set(changes).where('id', '=', id).execute();
 

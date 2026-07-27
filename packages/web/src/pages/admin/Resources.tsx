@@ -19,6 +19,8 @@ import {
   Switch,
 } from '../../components/ui.tsx';
 import { Combobox } from '../../components/combobox.tsx';
+import { AvatarPicker } from '../../components/avatar-picker.tsx';
+import { EntityAvatar } from '../../components/avatar.tsx';
 import { toOptions } from '../../components/pickers.tsx';
 
 const TYPES = ['staff', 'room', 'seat', 'court', 'lane', 'equipment', 'table', 'vehicle', 'other'] as const;
@@ -95,10 +97,10 @@ export default function Resources() {
       <ul className="grid gap-2 sm:grid-cols-2">
         {resources.data?.map((resource) => (
           <Card as="li" key={resource.id} className="flex items-center gap-3">
-            <span
-              className="size-10 shrink-0 rounded-xl"
-              style={{ background: resource.color ?? 'var(--brand)' }}
-              aria-hidden
+            <EntityAvatar
+              name={resource.name}
+              avatar={{ imageUrl: resource.imageUrl, icon: resource.icon, color: resource.color }}
+              square
             />
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold">{resource.name}</p>
@@ -155,6 +157,16 @@ export default function Resources() {
               <Input
                 value={draft.name ?? ''}
                 onChange={(event) => setDraft({ ...draft, name: event.target.value })}
+              />
+            </Field>
+
+            <Field label={t('avatar.fieldLabel')}>
+              <AvatarPicker
+                name={draft.name ?? ''}
+                target="resource"
+                organizationId={organizationId}
+                value={{ imageUrl: draft.imageUrl, icon: draft.icon, color: draft.color }}
+                onChange={(avatar) => setDraft({ ...draft, ...avatar })}
               />
             </Field>
 

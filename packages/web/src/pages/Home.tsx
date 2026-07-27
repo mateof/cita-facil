@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { CalendarPlus, MapPin, Search } from 'lucide-react';
 import { api } from '../lib/api.ts';
+import { EntityAvatar } from '../components/avatar.tsx';
 import { Card, EmptyState, LoadingBlock, PageHeader } from '../components/ui.tsx';
 
 interface OrganizationSummary {
@@ -11,6 +12,9 @@ interface OrganizationSummary {
   slug: string;
   name: string;
   timezone: string;
+  imageUrl: string | null;
+  icon: string | null;
+  color: string | null;
 }
 
 /**
@@ -54,12 +58,23 @@ export default function Home() {
       <ul className="grid gap-3 sm:grid-cols-2">
         {data.map((organization) => (
           <Card as="li" key={organization.id} className="transition hover:border-brand">
-            <Link to={`/${organization.slug}`} className="block">
+            <Link to={`/${organization.slug}`} className="flex items-center gap-3">
+              <EntityAvatar
+                name={organization.name}
+                avatar={{
+                  imageUrl: organization.imageUrl,
+                  icon: organization.icon,
+                  color: organization.color,
+                }}
+                square
+              />
+              <span className="min-w-0">
               <p className="font-semibold text-slate-900">{organization.name}</p>
               <p className="mt-1 flex items-center gap-1 text-sm text-slate-500">
                 <MapPin className="size-3.5" aria-hidden />
                 {organization.timezone}
               </p>
+              </span>
             </Link>
           </Card>
         ))}

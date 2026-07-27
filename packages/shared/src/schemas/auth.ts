@@ -103,6 +103,8 @@ export const sessionUserSchema = z.object({
   locale: localeSchema,
   timezone: z.string(),
   avatarUrl: z.string().nullable(),
+  icon: z.string().nullable(),
+  color: z.string().nullable(),
   platformRole: z.enum(['superadmin', 'user']),
   mfaEnabled: z.boolean(),
   emailVerified: z.boolean(),
