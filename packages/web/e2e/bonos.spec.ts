@@ -233,6 +233,31 @@ test.describe('editar un bono emitido', () => {
     await expect(dialogo.getByRole('alert')).toBeVisible();
   });
 
+  /** Guardar sin tocar nada no puede dejar el diálogo bloqueado con un error. */
+  test('guardar sin cambios cierra el diálogo', async ({ page }) => {
+    const fila = page.getByRole('row').filter({ hasText: CUENTAS.cliente.nombre }).first();
+    await fila.getByRole('button', { name: 'Editar' }).click();
+
+    const dialogo = page.getByRole('dialog');
+    await dialogo.getByRole('button', { name: 'Guardar' }).click();
+
+    await expect(dialogo).toHaveCount(0);
+  });
+
+  test('la nota escrita se conserva al reabrir el bono', async ({ page }) => {
+    const nota = `Regalo ${Date.now().toString().slice(-5)}`;
+    const fila = page.getByRole('row').filter({ hasText: CUENTAS.cliente.nombre }).first();
+    await fila.getByRole('button', { name: 'Editar' }).click();
+
+    const dialogo = page.getByRole('dialog');
+    await dialogo.getByLabel('Nota interna').fill(nota);
+    await dialogo.getByRole('button', { name: 'Guardar' }).click();
+    await expect(dialogo).toHaveCount(0);
+
+    await fila.getByRole('button', { name: 'Editar' }).click();
+    await expect(page.getByRole('dialog').getByLabel('Nota interna')).toHaveValue(nota);
+  });
+
   test('el filtro por estado deja fuera los bonos activos', async ({ page }) => {
     await page.getByLabel('Estado').selectOption('cancelled');
 

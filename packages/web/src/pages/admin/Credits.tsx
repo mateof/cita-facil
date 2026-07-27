@@ -670,19 +670,44 @@ function EditWalletModal({
     });
   }, [wallet]);
 
+  /**
+   * Solo se manda lo que ha cambiado.
+   *
+   * Además de no pisar campos que nadie ha tocado, hace que el fallo se note:
+   * mandando siempre los tres, un servidor que no entienda alguno responde que
+   * sí y guarda los otros, y el cambio se pierde sin aviso.
+   */
+  const cambios = (): Record<string, unknown> => {
+    if (!wallet) return {};
+    const patch: Record<string, unknown> = {};
+    const total = Number(draft.total);
+    const caducidad = draft.expiresAt ? `${draft.expiresAt}T00:00:00.000Z` : null;
+
+    if (Number.isFinite(total) && total !== wallet.total) patch.total = total;
+    if (caducidad !== (wallet.expiresAt ?? null)) patch.expiresAt = caducidad;
+    if (draft.note !== (wallet.note ?? '')) patch.note = draft.note;
+    return patch;
+  };
+
   const save = useMutation({
     mutationFn: () =>
-      api.patch(`/organizations/${organizationId}/credit-wallets/${wallet!.id}`, {
-        total: Number(draft.total),
-        expiresAt: draft.expiresAt ? `${draft.expiresAt}T00:00:00.000Z` : null,
-        note: draft.note,
-      }),
+      api.patch(`/organizations/${organizationId}/credit-wallets/${wallet!.id}`, cambios()),
     onSuccess: () => {
       cargado.current = '';
       onClose();
       void queryClient.invalidateQueries({ queryKey: ['credit-wallets'] });
     },
   });
+
+  const guardar = () => {
+    // Sin cambios no hay nada que pedirle al servidor, que además lo rechazaría.
+    if (Object.keys(cambios()).length === 0) {
+      cargado.current = '';
+      onClose();
+      return;
+    }
+    save.mutate();
+  };
 
   return (
     <Modal
@@ -694,7 +719,7 @@ function EditWalletModal({
           <Button variant="ghost" onClick={onClose}>
             {t('common.cancel')}
           </Button>
-          <Button loading={save.isPending} onClick={() => save.mutate()}>
+          <Button loading={save.isPending} onClick={guardar}>
             {t('common.save')}
           </Button>
         </>
