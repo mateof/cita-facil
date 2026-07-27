@@ -18,6 +18,7 @@ import {
 import clsx from 'clsx';
 import { api, ApiError } from '../lib/api.ts';
 import { EntityAvatar } from '../components/avatar.tsx';
+import { useOrganizationTheme } from '../components/theme.tsx';
 import {
   addDaysIso,
   formatDate,
@@ -103,15 +104,22 @@ export default function Book() {
     service?.requiresCreditPack && eligibility.data && !eligibility.data.allowed,
   );
 
-  /* La marca del establecimiento se aplica como variable CSS. */
+  /*
+   * Aspecto del establecimiento.
+   *
+   * El tema, si tiene uno, manda sobre el color de marca suelto de los
+   * ajustes: es más completo y lo incluye. Sin tema se sigue aplicando el
+   * color a secas, que es lo que ya usaban las organizaciones de antes.
+   */
+  useOrganizationTheme(data?.theme);
+
   useEffect(() => {
-    if (organization?.branding.brandColor) {
-      document.documentElement.style.setProperty('--brand', organization.branding.brandColor);
-    }
+    if (data?.theme || !organization?.branding.brandColor) return;
+    document.documentElement.style.setProperty('--brand', organization.branding.brandColor);
     return () => {
       document.documentElement.style.removeProperty('--brand');
     };
-  }, [organization?.branding.brandColor]);
+  }, [data?.theme, organization?.branding.brandColor]);
 
   /**
    * Selección de servicio.

@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import {
+  themeToCssVariables,
   PAGE_KEYS,
   availabilityQuerySchema,
   isoDateSchema,
@@ -20,6 +21,7 @@ import {
   listCategories,
 } from '../modules/catalog/service.js';
 import { publishedPage, publishedPages } from '../modules/catalog/pages.js';
+import { activeTheme } from '../modules/themes/service.js';
 import { findByAccessCode } from '../modules/appointments/queries.js';
 import { getAuthSettings } from '../modules/settings/access-policy.js';
 
@@ -137,11 +139,12 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const locale = request.query.locale ?? request.locale;
-      const [locations, services, categories, pages] = await Promise.all([
+      const [locations, services, categories, pages, tema] = await Promise.all([
         listLocations(organization.id, { onlyActive: true }),
         listServices(organization.id, { onlyActive: true, onlyPublic: true }),
         listCategories(organization.id),
         publishedPages(organization.id, locale),
+        activeTheme(organization.id),
       ]);
 
       // La reserva sin cuenta necesita el visto bueno de la instalación y el de
@@ -176,6 +179,14 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           imageUrl: organization.imageUrl,
           icon: organization.icon,
           color: organization.color,
+        },
+        // El tema en uso viaja resuelto: variables CSS listas para aplicar, la
+        // hoja propia ya saneada y la marca de la cabecera. Así el navegador no
+        // necesita saber nada del catálogo de ajustes.
+        theme: tema && {
+          variables: themeToCssVariables(tema.tokens),
+          customCss: tema.customCss,
+          header: tema.header,
         },
         // Solo los títulos: el contenido se pide al abrir la página, que es
         // texto largo y no hace falta en cada visita a la reserva.

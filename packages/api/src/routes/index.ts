@@ -15,6 +15,7 @@ import adminRoutes from './admin.js';
 import integrationRoutes from './integrations.js';
 import publicRoutes from './public.js';
 import uploadRoutes from './uploads.js';
+import themeRoutes from './themes.js';
 import mcpRoutes from './mcp.js';
 
 /** Registro de todas las rutas bajo `/api/v1`. */
@@ -30,6 +31,7 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   await app.register(paymentRoutes, { prefix: '/organizations/:organizationId' });
   await app.register(creditRoutes, { prefix: '/organizations/:organizationId' });
   await app.register(reportRoutes, { prefix: '/organizations/:organizationId' });
+  await app.register(themeRoutes, { prefix: '/organizations/:organizationId' });
   await app.register(integrationRoutes, { prefix: '/organizations/:organizationId' });
   await app.register(adminRoutes, { prefix: '/admin' });
   await app.register(publicRoutes, { prefix: '/public' });

@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import {
+  Palette,
   BarChart3,
   CalendarDays,
   CalendarRange,
@@ -26,6 +27,7 @@ import {
 import { useAuth } from '../stores/auth.ts';
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from '../i18n/index.ts';
 import FirstOrganization from './FirstOrganization.tsx';
+import { HeaderBrand } from './header-brand.tsx';
 
 /** Selector de idioma. Presente en todas las pantallas, también sin sesión. */
 export function LanguageSwitcher({ compact }: { compact?: boolean }) {
@@ -79,9 +81,7 @@ export function CustomerLayout() {
     <div className="flex min-h-full flex-col">
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-          <NavLink to="/" className="text-lg font-bold text-brand">
-            {t('common.appName')}
-          </NavLink>
+          <HeaderBrand />
 
           <nav className="hidden items-center gap-1 sm:flex">
             {items.map((item) => (
@@ -203,6 +203,7 @@ export function AdminLayout() {
     { to: '/admin/informes', label: t('nav.reports'), icon: BarChart3, visible: can('report:read') },
     { to: '/admin/avisos', label: t('nav.notifications'), icon: Bell, visible: can('notification:read') },
     { to: '/admin/integraciones', label: t('nav.integrations'), icon: Plug, visible: can('integration:read') },
+    { to: '/admin/temas', label: t('nav.themes'), icon: Palette, visible: can('settings:read') },
     { to: '/admin/ajustes', label: t('nav.settings'), icon: Cog, visible: can('settings:read') },
     {
       to: '/admin/organizaciones',

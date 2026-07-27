@@ -136,6 +136,7 @@ ingresos, plantillas de aviso, integraciones, ajustes y copias de seguridad.
 | [Autenticación](docs/autenticacion.md) | DNIe, FNMT, Cl@ve, passkeys y 2FA |
 | [API](docs/api.md) | Endpoints, autenticación y errores |
 | [Bonos](docs/bonos.md) | Sesiones prepagadas, venta online y servicios que las exigen |
+| [Temas y aspecto](docs/temas.md) | Colores, tipografía, CSS propio y marca de la cabecera |
 | [Imágenes e iconos](docs/imagenes.md) | Logotipos, iconos e iniciales de cada entidad |
 | [Notificaciones](docs/notificaciones.md) | Canales, plantillas y recordatorios |
 | [Control de acceso](docs/control-de-acceso.md) | Integración con puertas y tornos |

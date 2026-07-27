@@ -197,6 +197,9 @@ export interface PublicOrganization {
     };
     allowGuestBooking: boolean;
     waitlistEnabled: boolean;
+    imageUrl: string | null;
+    icon: string | null;
+    color: string | null;
   };
   /** Páginas de contenido publicadas, para el pie. */
   pages: { key: PublicPageKey; title: string }[];
@@ -204,6 +207,19 @@ export interface PublicOrganization {
   categories: { id: string; name: string; color: string | null; sortOrder: number }[];
   services: PublicService[];
   resources: PublicResource[];
+  theme: {
+    variables: Record<string, string>;
+    customCss: string | null;
+    header: {
+      longName?: string | null;
+      shortName?: string | null;
+      color?: string | null;
+      fontSize?: string | null;
+      weight?: string | null;
+      fontFamily?: 'system' | 'serif' | 'mono' | 'rounded' | null;
+      useImage?: boolean;
+    } | null;
+  } | null;
 }
 
 export interface Slot {

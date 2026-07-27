@@ -52,6 +52,7 @@ export interface Database {
   organization_pages: OrganizationPagesTable;
   credit_packs: CreditPacksTable;
   credit_wallets: CreditWalletsTable;
+  themes: ThemesTable;
   credit_ledger: CreditLedgerTable;
 
   api_keys: ApiKeysTable;
@@ -799,4 +800,17 @@ export interface BackupsTable {
   error: string | null;
   started_at: string;
   finished_at: string | null;
+}
+
+export interface ThemesTable {
+  id: string;
+  organization_id: string;
+  name: string;
+  description: string | null;
+  tokens_json: string | null;
+  custom_css: string | null;
+  header_json: string | null;
+  active: number;
+  created_at: string;
+  updated_at: string;
 }

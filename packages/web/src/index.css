@@ -13,14 +13,36 @@
   --color-brand-dark: color-mix(in oklab, var(--brand, #2563eb) 85%, black);
   --color-brand-soft: color-mix(in oklab, var(--brand, #2563eb) 12%, white);
 
-  --color-surface: #ffffff;
-  --color-surface-muted: #f6f7f9;
-  --color-border-subtle: #e5e7eb;
+  /*
+   * Cada color del tema cuelga de una variable `--tema-*` con su valor de
+   * serie como respaldo. El tema de una organización solo tiene que escribir
+   * esas variables en el elemento raíz: si no hay tema, o si le falta un
+   * ajuste, se ve exactamente lo de siempre.
+   */
+  --color-surface: var(--tema-superficie, #ffffff);
+  --color-surface-muted: var(--tema-fondo, #f6f7f9);
+  --color-border-subtle: var(--tema-borde, #e5e7eb);
+  --color-body: var(--tema-texto, #0f172a);
+  --color-body-muted: var(--tema-texto-suave, #64748b);
+  --color-ok: var(--tema-exito, #16a34a);
+  --color-warn: var(--tema-aviso, #d97706);
+  --color-bad: var(--tema-error, #dc2626);
 
   --font-sans:
-    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    var(
+      --tema-fuente,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif
+    );
 
-  --radius-card: 1rem;
+  --radius-card: var(--tema-radio-tarjeta, 1rem);
+  --radius-button: var(--tema-radio-boton, 0.75rem);
+  --radius-input: var(--tema-radio-campo, 0.75rem);
 }
 
 :root {
@@ -35,8 +57,11 @@ body,
 }
 
 body {
-  @apply bg-surface-muted text-slate-900 antialiased;
+  @apply bg-surface-muted antialiased;
+  color: var(--color-body);
   font-family: var(--font-sans);
+  font-size: var(--tema-tamano-base, 16px);
+  letter-spacing: var(--tema-espaciado-letras, normal);
   /* Deja hueco para la barra inferior en móviles con área segura. */
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -53,7 +78,13 @@ body {
 
 @layer components {
   .card {
-    @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm;
+    @apply border p-4;
+    background: var(--color-surface);
+    border-color: var(--color-border-subtle);
+    border-width: var(--tema-grosor-borde, 1px);
+    border-radius: var(--radius-card);
+    box-shadow: var(--tema-sombra, 0 1px 2px rgb(15 23 42 / 0.06), 0 1px 3px rgb(15 23 42 / 0.1));
+    padding: calc(1rem * var(--tema-densidad, 1));
   }
 
   /*
@@ -66,14 +97,16 @@ body {
   .btn-secondary,
   .btn-ghost,
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold
       transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+    border-radius: var(--radius-button);
     /* 44 px de alto mínimo: es el objetivo táctil cómodo en móvil. */
     min-height: 2.75rem;
   }
 
   .btn-primary {
-    @apply bg-brand text-white hover:bg-brand-dark;
+    @apply bg-brand hover:bg-brand-dark;
+    color: var(--brand-text, #ffffff);
   }
 
   .btn-secondary {
@@ -89,9 +122,12 @@ body {
   }
 
   .input {
-    @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-base
+    @apply w-full border px-3 py-2.5 text-base
       outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20
       disabled:bg-slate-100;
+    background: var(--color-surface);
+    border-color: var(--color-border-subtle);
+    border-radius: var(--radius-input);
     min-height: 2.75rem;
   }
 
@@ -106,6 +142,51 @@ body {
   .skeleton {
     @apply animate-pulse rounded-lg bg-slate-200;
   }
+}
+
+
+/*
+ * Puente para las pantallas públicas cuando hay un tema activo.
+ *
+ * La interfaz está escrita con las utilidades de Tailwind (`bg-white`,
+ * `text-slate-900`), que son colores fijos. Reasignarlas aquí, y solo mientras
+ * hay un tema puesto, evita repasar cada clase de cada pantalla y que la
+ * siguiente que se escriba se olvide de usar las variables. El atributo lo pone
+ * y lo quita el propio tema, así que el panel nunca se ve afectado.
+ */
+:root[data-tema] body {
+  background-color: var(--tema-fondo);
+}
+
+:root[data-tema] .bg-white,
+:root[data-tema] .bg-white\/95 {
+  background-color: var(--tema-superficie);
+}
+
+:root[data-tema] .bg-slate-50 {
+  background-color: var(--tema-fondo);
+}
+
+:root[data-tema] .text-slate-900,
+:root[data-tema] .text-slate-800,
+:root[data-tema] .text-slate-700 {
+  color: var(--tema-texto);
+}
+
+:root[data-tema] .text-slate-500,
+:root[data-tema] .text-slate-400 {
+  color: var(--tema-texto-suave);
+}
+
+:root[data-tema] .border-slate-200,
+:root[data-tema] .border-slate-300,
+:root[data-tema] .divide-slate-100 > * + * {
+  border-color: var(--tema-borde);
+}
+
+:root[data-tema] header {
+  background-color: var(--tema-cabecera-fondo);
+  color: var(--tema-cabecera-texto);
 }
 
 /* Barra de desplazamiento discreta en las agendas largas. */
