@@ -96,6 +96,11 @@ Cada movimiento queda anotado en el histórico del bono con su motivo: `grant`,
 
 ## Reglas de consumo
 
+Cuándo se descuenta la sesión (al reservar o al completar la cita) y si se puede
+reservar quedando a deber se explican en
+[reglas de reserva](reglas-de-reserva.md). Aquí se describe el comportamiento
+por defecto: descuento al reservar.
+
 - Se gasta **primero el bono que antes caduca**, para que no se pierda saldo.
 - Un bono caducado, agotado o anulado no cuenta.
 - El descuento se hace dentro de la transacción de la reserva y condicionado a

@@ -21,6 +21,7 @@ import {
   Textarea,
 } from '../../components/ui.tsx';
 import { AvatarPicker } from '../../components/avatar-picker.tsx';
+import { CutoffSelect } from '../../components/cutoff-select.tsx';
 import { EntityAvatar } from '../../components/avatar.tsx';
 
 type Draft = Partial<AdminService> & { descriptionText?: string };
@@ -414,13 +415,29 @@ function ServiceForm({
               onChange={(event) => set({ capacity: Number(event.target.value) })}
             />
           </Field>
-          <Field label={`${t('admin.services.minAdvance')} (min)`} className="mb-0">
-            <Input
-              type="number"
-              min={0}
-              value={draft.minAdvanceMinutes ?? 0}
-              onChange={(event) => set({ minAdvanceMinutes: Number(event.target.value) })}
+          <Field label={t('admin.rules.minAdvance')} hint={t('admin.rules.minAdvanceHint')} className="mb-0">
+            <CutoffSelect
+              allowInherit
+              value={draft.minAdvanceMinutes}
+              onChange={(value) => set({ minAdvanceMinutes: value })}
             />
+          </Field>
+          <Field label={t('admin.rules.cancelCutoff')} hint={t('admin.rules.cancelCutoffHint')} className="mb-0">
+            <CutoffSelect
+              allowInherit
+              value={draft.cancellationCutoffMinutes}
+              onChange={(value) => set({ cancellationCutoffMinutes: value })}
+            />
+          </Field>
+          <Field label={t('admin.rules.chargeMode')} hint={t('admin.rules.chargeModeHint')} className="mb-0">
+            <Select
+              value={draft.creditChargeMode ?? 'inherit'}
+              onChange={(event) => set({ creditChargeMode: event.target.value as never })}
+            >
+              <option value="inherit">{t('admin.rules.chargeInherit')}</option>
+              <option value="booking">{t('admin.rules.chargeBooking')}</option>
+              <option value="completion">{t('admin.rules.chargeCompletion')}</option>
+            </Select>
           </Field>
           <Field label={`${t('admin.services.maxAdvance')} (${t('common.days')})`} className="mb-0">
             <Input

@@ -7,6 +7,7 @@ import * as m005 from './005_credits.js';
 import * as m006 from './006_pages.js';
 import * as m007 from './007_avatars.js';
 import * as m008 from './008_themes.js';
+import * as m009 from './009_booking_rules.js';
 
 /**
  * Las migraciones se registran en un objeto estático en lugar de leerse del
@@ -23,6 +24,7 @@ export const migrations: Record<string, Migration> = {
   '006_pages': m006,
   '007_avatars': m007,
   '008_themes': m008,
+  '009_booking_rules': m009,
 };
 
 export class StaticMigrationProvider implements MigrationProvider {

@@ -36,6 +36,8 @@ export interface AppointmentDetail {
   priceCents: number;
   currency: string;
   paymentStatus: PaymentStatus;
+  /** Bono del que salió la sesión, si ya se cobró. */
+  creditWalletId: string | null;
   notes: string | null;
   internalNotes: string | null;
   customFields: Record<string, unknown> | null;
@@ -75,6 +77,7 @@ const DETAIL_SELECTION = [
   'appointments.price_cents',
   'appointments.currency',
   'appointments.payment_status',
+  'appointments.credit_wallet_id',
   'appointments.notes',
   'appointments.internal_notes',
   'appointments.custom_fields_json',
@@ -144,6 +147,7 @@ export function mapAppointment(row: Row): AppointmentDetail {
     priceCents: row.price_cents,
     currency: row.currency,
     paymentStatus: row.payment_status as PaymentStatus,
+    creditWalletId: row.credit_wallet_id ?? null,
     notes: row.notes,
     internalNotes: row.internal_notes,
     customFields: row.custom_fields_json

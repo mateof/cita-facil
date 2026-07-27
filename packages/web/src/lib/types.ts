@@ -312,9 +312,7 @@ export interface AdminService {
   requiresCreditPack: boolean;
   capacity: number;
   requiresApproval: boolean;
-  minAdvanceMinutes: number;
   maxAdvanceDays: number;
-  cancellationCutoffMinutes: number;
   rescheduleCutoffMinutes: number;
   allowResourceSelection: boolean;
   publiclyBookable: boolean;
@@ -322,6 +320,10 @@ export interface AdminService {
   sortOrder: number;
   active: boolean;
   resourceIds: string[];
+  /** `null` = hereda el plazo de la organización. */
+  minAdvanceMinutes: number | null;
+  cancellationCutoffMinutes: number | null;
+  creditChargeMode: 'inherit' | 'booking' | 'completion';
 }
 
 export interface AdminResource {

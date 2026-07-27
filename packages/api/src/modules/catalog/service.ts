@@ -9,6 +9,7 @@ import type {
   ScheduleRule,
 } from '@cita-facil/shared';
 import { isReservedSlug } from '@cita-facil/shared';
+import { toNullable, toStored } from '../appointments/rules.js';
 import { db } from '../../db/index.js';
 import { newId } from '../../lib/ids.js';
 import { isoNow } from '../../lib/dates.js';
@@ -618,9 +619,11 @@ export interface ServiceView {
   requiresCreditPack: boolean;
   capacity: number;
   requiresApproval: boolean;
-  minAdvanceMinutes: number;
+  /** `null` = hereda el plazo de la organización. */
+  minAdvanceMinutes: number | null;
   maxAdvanceDays: number;
-  cancellationCutoffMinutes: number;
+  /** `null` = hereda el plazo de la organización. */
+  cancellationCutoffMinutes: number | null;
   rescheduleCutoffMinutes: number;
   allocationStrategy: string | null;
   allowResourceSelection: boolean;
@@ -660,9 +663,9 @@ function mapService(row: any, resourceIds: string[] = []): ServiceView {
     requiresCreditPack: row.requires_credit_pack === 1,
     capacity: row.capacity,
     requiresApproval: row.requires_approval === 1,
-    minAdvanceMinutes: row.min_advance_minutes,
+    minAdvanceMinutes: toNullable(row.min_advance_minutes),
     maxAdvanceDays: row.max_advance_days,
-    cancellationCutoffMinutes: row.cancellation_cutoff_minutes,
+    cancellationCutoffMinutes: toNullable(row.cancellation_cutoff_minutes),
     rescheduleCutoffMinutes: row.reschedule_cutoff_minutes,
     allocationStrategy: row.allocation_strategy,
     allowResourceSelection: row.allow_resource_selection === 1,
@@ -711,11 +714,12 @@ export async function createService(
       deposit_cents: input.depositCents,
       payment_required: input.paymentRequired ? 1 : 0,
       requires_credit_pack: input.requiresCreditPack ? 1 : 0,
+      credit_charge_mode: input.creditChargeMode ?? 'inherit',
       capacity: input.capacity,
       requires_approval: input.requiresApproval ? 1 : 0,
-      min_advance_minutes: input.minAdvanceMinutes,
+      min_advance_minutes: toStored(input.minAdvanceMinutes),
       max_advance_days: input.maxAdvanceDays,
-      cancellation_cutoff_minutes: input.cancellationCutoffMinutes,
+      cancellation_cutoff_minutes: toStored(input.cancellationCutoffMinutes),
       reschedule_cutoff_minutes: input.rescheduleCutoffMinutes,
       allocation_strategy: input.allocationStrategy ?? null,
       allow_resource_selection: input.allowResourceSelection ? 1 : 0,
@@ -869,12 +873,19 @@ export async function updateService(
     cancellationCutoffMinutes: 'cancellation_cutoff_minutes',
     rescheduleCutoffMinutes: 'reschedule_cutoff_minutes',
     allocationStrategy: 'allocation_strategy',
+    creditChargeMode: 'credit_charge_mode',
     sortOrder: 'sort_order',
   };
 
   for (const [key, column] of Object.entries(map)) {
     const value = (patch as Record<string, unknown>)[key];
-    if (value !== undefined) update[column] = value;
+    if (value === undefined) continue;
+    // Los dos plazos heredables viajan como `null` y se guardan con el
+    // centinela; el resto pasa tal cual.
+    update[column] =
+      column === 'min_advance_minutes' || column === 'cancellation_cutoff_minutes'
+        ? toStored(value as number | null)
+        : value;
   }
 
   const booleans: Record<string, string> = {

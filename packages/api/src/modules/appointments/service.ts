@@ -29,7 +29,9 @@ import {
   resolveDuration,
 } from '../availability/engine.js';
 import { notify } from '../notifications/service.js';
-import { consumeCredit, refundCredit } from '../credits/service.js';
+import { consumeCredit, hasUsableCredit, refundCredit } from '../credits/service.js';
+import { cancelDebtForAppointment, countPendingDebts, recordDebt } from '../credits/debts.js';
+import { effectiveRules } from './rules.js';
 import { getAuthSettings } from '../settings/access-policy.js';
 import { recordAudit } from '../audit/service.js';
 import { dispatchWebhook } from '../integrations/webhooks.js';
@@ -58,6 +60,14 @@ export interface ActorContext {
   ip?: string | null;
   userAgent?: string | null;
   locale?: string;
+  /**
+   * Reserva por encima del aforo.
+   *
+   * Solo lo usan las programaciones semanales cuyo negocio ha elegido "reservar
+   * igualmente": es la única forma de meter dos citas en el mismo hueco, y por
+   * eso no se expone en ningún endpoint.
+   */
+  skipCapacityCheck?: boolean;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -231,7 +241,10 @@ export async function createAppointment(
     ignoreBookingRules: actor.isStaff === true,
   });
 
-  if (!availability.free) {
+  // Con `skipCapacityCheck` la cita se crea aunque no quepa: es la opción
+  // "reservar igualmente" de las programaciones semanales, que el negocio elige
+  // sabiendo que después tendrá que cuadrarlo a mano.
+  if (!availability.free && !actor.skipCapacityCheck) {
     throw new SlotUnavailableError('El horario solicitado ya no está disponible', {
       startsAt,
       durationMinutes: duration,
@@ -255,6 +268,7 @@ export async function createAppointment(
   const id = newId();
   const now = isoNow();
   const usesCredit = service.requires_credit_pack === 1 && customerId !== null;
+  const reglas = effectiveRules(service, settings0(settings) as never);
   let creditWalletId: string | null = null;
 
   await db()
@@ -270,7 +284,7 @@ export async function createAppointment(
         excludeAppointmentId: input.holdId,
       });
 
-      if (taken + partySize > capacity) {
+      if (taken + partySize > capacity && !actor.skipCapacityCheck) {
         throw new SlotUnavailableError('Alguien ha ocupado ese hueco mientras reservabas');
       }
 
@@ -282,18 +296,51 @@ export async function createAppointment(
           .execute();
       }
 
-      if (usesCredit) {
+      /*
+       * Bono: se descuenta aquí solo si la regla es cobrar al reservar. Con
+       * `completion` la sesión se cobra al dar la cita por hecha, así que aquí
+       * únicamente se comprueba que haya con qué pagarla llegado el momento.
+       */
+      if (usesCredit && reglas.creditChargeMode === 'booking') {
         creditWalletId = await consumeCredit(trx, {
           organizationId,
           userId: customerId as string,
           serviceId: service.id,
           appointmentId: id,
         });
-        if (!creditWalletId) {
+      }
+
+      /*
+       * Con cobro al completar no se descuenta nada ahora, pero sí se exige que
+       * haya con qué pagar: dejar reservar a quien no tiene saldo ni permiso
+       * para deber solo aplaza el problema al mostrador.
+       */
+      const cubierto =
+        creditWalletId !== null ||
+        (reglas.creditChargeMode === 'completion' &&
+          (await hasUsableCredit(organizationId, customerId as string, service.id, trx)));
+
+      if (usesCredit && !cubierto) {
+        // Sin saldo: se admite quedar a deber si la organización lo permite y
+        // no se ha pasado del tope.
+        const ajustes = settings0(settings);
+        const debidas = await countPendingDebts(organizationId, customerId as string, trx);
+        const permitido = ajustes.allowCreditDebt === true && debidas < (ajustes.maxCreditDebt ?? 2);
+
+        if (!permitido) {
           throw new ForbiddenError(
             'No te queda ninguna sesión de bono para este servicio',
             'no_credits',
           );
+        }
+
+        if (reglas.creditChargeMode === 'booking') {
+          await recordDebt(trx, {
+            organizationId,
+            userId: customerId as string,
+            appointmentId: id,
+            serviceId: service.id,
+          });
         }
       }
 
@@ -687,6 +734,17 @@ export async function changeStatus(
 
   await db().updateTable('appointments').set(patch).where('id', '=', appointmentId).execute();
 
+  /*
+   * Bono con cobro al completar.
+   *
+   * También se cobra al marcar una falta: la plaza se ocupó igual y no
+   * presentarse no puede salir más barato que venir. Es la misma norma que ya
+   * regía las devoluciones.
+   */
+  if ((next === 'completed' || next === 'no_show') && !appointment.creditWalletId) {
+    await chargeCreditOnCompletion(appointment);
+  }
+
   if (next === 'no_show' && appointment.customerId) {
     await db()
       .updateTable('users')
@@ -777,6 +835,8 @@ export async function cancelAppointment(
   // La sesión del bono vuelve al saldo. Las faltas sin avisar no la devuelven:
   // eso se decide en `changeStatus`, no aquí.
   await refundCredit(appointmentId, 'cancel');
+  // Si la sesión estaba a deber, se anula: no se llegó a prestar.
+  await cancelDebtForAppointment(appointmentId);
   const updated = await requireAppointmentDetail(appointmentId);
 
   if (options.notifyCustomer !== false) {
@@ -935,6 +995,91 @@ export async function rescheduleAppointment(
   return updated;
 }
 
+/**
+ * Cuánto queda para que se cierre el plazo de cancelación.
+ *
+ * La interfaz la usa para no ofrecer un botón que el servidor va a rechazar; la
+ * decisión de verdad se sigue tomando al cancelar.
+ */
+export async function cancellationWindow(
+  organizationId: string,
+  appointmentId: string,
+): Promise<{ cancellable: boolean; cutoffMinutes: number; minutesLeft: number }> {
+  const appointment = await requireAppointmentDetail(appointmentId);
+  const service = await db()
+    .selectFrom('services')
+    .select(['min_advance_minutes', 'cancellation_cutoff_minutes', 'credit_charge_mode'])
+    .where('id', '=', appointment.serviceId)
+    .executeTakeFirst();
+
+  const settings = settings0(await organizationSettings(organizationId));
+  const cutoff = service
+    ? effectiveRules(service, settings as never).cancellationCutoffMinutes
+    : 0;
+  const minutesLeft = Math.floor((Date.parse(appointment.startsAt) - Date.now()) / 60_000);
+
+  return {
+    cancellable: cutoff <= 0 || minutesLeft >= cutoff,
+    cutoffMinutes: cutoff,
+    minutesLeft,
+  };
+}
+
+/**
+ * Cobra la sesión de una cita que se cobra al completarse.
+ *
+ * Si no queda saldo se anota como sesión a deber cuando la organización lo
+ * permite; si no lo permite, la cita se queda sin cobrar y se registra en el
+ * historial. No se impide completar la cita: el servicio ya se ha prestado y
+ * negarlo aquí solo dejaría la agenda sin cerrar.
+ */
+async function chargeCreditOnCompletion(appointment: AppointmentDetail): Promise<void> {
+  const service = await db()
+    .selectFrom('services')
+    .select(['id', 'requires_credit_pack', 'credit_charge_mode', 'min_advance_minutes', 'cancellation_cutoff_minutes'])
+    .where('id', '=', appointment.serviceId)
+    .executeTakeFirst();
+  if (!service || service.requires_credit_pack !== 1 || !appointment.customerId) return;
+
+  const settings = settings0(await organizationSettings(appointment.organizationId));
+  if (effectiveRules(service, settings as never).creditChargeMode !== 'completion') return;
+
+  const walletId = await db()
+    .transaction()
+    .execute((trx) =>
+      consumeCredit(trx, {
+        organizationId: appointment.organizationId,
+        userId: appointment.customerId as string,
+        serviceId: appointment.serviceId,
+        appointmentId: appointment.id,
+      }),
+    );
+
+  if (walletId) {
+    await db()
+      .updateTable('appointments')
+      .set({ credit_wallet_id: walletId, payment_status: 'paid', updated_at: isoNow() })
+      .where('id', '=', appointment.id)
+      .execute();
+    return;
+  }
+
+  if (settings.allowCreditDebt === true) {
+    await recordDebt(db(), {
+      organizationId: appointment.organizationId,
+      userId: appointment.customerId,
+      appointmentId: appointment.id,
+      serviceId: appointment.serviceId,
+    });
+    return;
+  }
+
+  logger.warn(
+    { appointmentId: appointment.id },
+    'Cita completada sin saldo y sin deuda permitida: queda sin cobrar',
+  );
+}
+
 /** Comprueba el plazo mínimo para cancelar o cambiar, definido en el servicio. */
 async function assertWithinCutoff(
   appointment: AppointmentDetail,
@@ -943,11 +1088,18 @@ async function assertWithinCutoff(
 ): Promise<void> {
   const service = await db()
     .selectFrom('services')
-    .select([column])
+    .select([column, 'min_advance_minutes', 'cancellation_cutoff_minutes', 'credit_charge_mode'])
     .where('id', '=', appointment.serviceId)
     .executeTakeFirst();
+  if (!service) return;
 
-  const cutoff = (service?.[column] as number | undefined) ?? 0;
+  // El plazo de cancelación puede venir de la organización; el de cambio de
+  // fecha sigue siendo solo del servicio.
+  const settings = settings0(await organizationSettings(appointment.organizationId));
+  const cutoff =
+    column === 'cancellation_cutoff_minutes'
+      ? effectiveRules(service, settings as never).cancellationCutoffMinutes
+      : ((service[column] as number | null) ?? 0);
   if (cutoff <= 0) return;
 
   const minutesLeft = (Date.parse(appointment.startsAt) - Date.now()) / 60_000;

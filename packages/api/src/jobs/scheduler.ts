@@ -8,6 +8,7 @@ import {
   requestPendingReviews,
 } from '../modules/appointments/service.js';
 import { expireWaitlistOffers } from '../modules/appointments/waitlist.js';
+import { runAllSchedules } from '../modules/appointments/schedules.js';
 import { deliverPendingWebhooks } from '../modules/integrations/webhooks.js';
 import { purgeExpiredSessions } from '../modules/auth/tokens.js';
 import { purgeAudit } from '../modules/audit/service.js';
@@ -63,6 +64,9 @@ export function startScheduler(): void {
 
   /* Ofertas de lista de espera no atendidas. */
   schedule('lista-espera', '*/5 * * * *', () => expireWaitlistOffers());
+
+  /* Citas de las programaciones semanales, dentro de su horizonte. */
+  schedule('programaciones', '7 3 * * *', () => runAllSchedules());
 
   /* Faltas sin avisar. */
   schedule('no-show', '*/10 * * * *', () => autoMarkNoShows());

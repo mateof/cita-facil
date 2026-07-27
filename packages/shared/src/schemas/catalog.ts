@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import {
   ALLOCATION_STRATEGIES,
+  CREDIT_CHARGE_MODES,
+  SERVICE_CREDIT_CHARGE_MODES,
   DURATION_MODES,
   EXCEPTION_TYPES,
   PRICE_MODES,
@@ -61,6 +63,23 @@ export const organizationSettingsSchema = z
     accessSingleUse: z.boolean().default(false),
     /** Marca automáticamente como falta las citas no atendidas pasados N minutos. */
     autoNoShowAfterMinutes: z.number().int().min(0).max(1440).default(0),
+
+    /**
+     * Cuándo se descuenta la sesión del bono, para los servicios que no lo
+     * digan por su cuenta. `booking` es lo que se ha hecho siempre.
+     */
+    creditChargeMode: z.enum(CREDIT_CHARGE_MODES).default('booking'),
+    /** Deja reservar sin saldo, quedando a deber. */
+    allowCreditDebt: z.boolean().default(false),
+    /** Sesiones que se pueden deber a la vez. */
+    maxCreditDebt: z.number().int().min(1).max(50).default(2),
+
+    /**
+     * Plazos por defecto, en minutos, para los servicios que no fijen el suyo.
+     * Cero significa sin límite, que no es lo mismo que heredar.
+     */
+    minAdvanceMinutes: z.number().int().min(0).max(525_600).default(0),
+    cancellationCutoffMinutes: z.number().int().min(0).max(525_600).default(0),
     brandColor: colorSchema.default('#2563eb'),
     logoUrl: z.string().url().max(500).nullable().default(null),
     termsUrl: z.string().url().max(500).nullable().default(null),
@@ -173,10 +192,14 @@ export const createServiceSchema = z
     /* Aforo y reglas */
     capacity: z.number().int().min(1).max(1000).default(1),
     requiresApproval: z.boolean().default(false),
-    minAdvanceMinutes: z.number().int().min(0).max(525_600).default(0),
+    /** `null` hereda el plazo de la organización. Cero es sin límite. */
+    minAdvanceMinutes: z.number().int().min(0).max(525_600).nullish(),
     maxAdvanceDays: z.number().int().min(0).max(730).default(90),
-    cancellationCutoffMinutes: z.number().int().min(0).max(525_600).default(0),
+    /** `null` hereda el plazo de la organización. Cero es sin límite. */
+    cancellationCutoffMinutes: z.number().int().min(0).max(525_600).nullish(),
     rescheduleCutoffMinutes: z.number().int().min(0).max(525_600).default(0),
+    /** Cuándo se cobra el bono. `inherit` sigue lo que diga la organización. */
+    creditChargeMode: z.enum(SERVICE_CREDIT_CHARGE_MODES).default('inherit'),
     allocationStrategy: z.enum(ALLOCATION_STRATEGIES).nullable().optional(),
     /** Recursos que pueden prestar el servicio. Vacío = todos los de la sede. */
     resourceIds: z.array(idSchema).max(500).optional(),

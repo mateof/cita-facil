@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import {
+  CalendarSync,
   Palette,
   BarChart3,
   CalendarDays,
@@ -199,6 +200,7 @@ export function AdminLayout() {
     { to: '/admin/bonos', label: t('nav.credits'), icon: Ticket, visible: can('credit:read') },
     { to: '/admin/recursos', label: t('nav.resources'), icon: Wrench, visible: can('resource:read') },
     { to: '/admin/horarios', label: t('nav.schedules'), icon: CalendarRange, visible: can('schedule:read') },
+    { to: '/admin/programaciones', label: t('nav.recurring'), icon: CalendarSync, visible: can('appointment:read') },
     { to: '/admin/equipo', label: t('nav.team'), icon: Users, visible: can('member:read') },
     { to: '/admin/informes', label: t('nav.reports'), icon: BarChart3, visible: can('report:read') },
     { to: '/admin/avisos', label: t('nav.notifications'), icon: Bell, visible: can('notification:read') },

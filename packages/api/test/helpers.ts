@@ -151,9 +151,10 @@ export async function seedFixture(db: Kysely<Database>): Promise<Fixture> {
     requires_credit_pack: 0,
     capacity: 1,
     requires_approval: 0,
-    min_advance_minutes: 0,
+    // `-1` = hereda el plazo de la organización.
+    min_advance_minutes: -1,
     max_advance_days: 365,
-    cancellation_cutoff_minutes: 0,
+    cancellation_cutoff_minutes: -1,
     reschedule_cutoff_minutes: 0,
     allocation_strategy: null,
     allow_resource_selection: 1,

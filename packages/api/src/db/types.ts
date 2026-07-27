@@ -53,6 +53,9 @@ export interface Database {
   credit_packs: CreditPacksTable;
   credit_wallets: CreditWalletsTable;
   themes: ThemesTable;
+  credit_debts: CreditDebtsTable;
+  appointment_schedules: AppointmentSchedulesTable;
+  schedule_occurrences: ScheduleOccurrencesTable;
   credit_ledger: CreditLedgerTable;
 
   api_keys: ApiKeysTable;
@@ -335,8 +338,10 @@ export interface ServicesTable {
 
   capacity: number;
   requires_approval: number;
+  /** `-1` hereda el plazo de la organización. Ver `appointments/rules.ts`. */
   min_advance_minutes: number;
   max_advance_days: number;
+  /** `-1` hereda el plazo de la organización. */
   cancellation_cutoff_minutes: number;
   reschedule_cutoff_minutes: number;
   allocation_strategy: string | null;
@@ -351,6 +356,8 @@ export interface ServicesTable {
   updated_at: string;
   deleted_at: string | null;
   icon: string | null;
+  /** `inherit`, `booking` o `completion`. */
+  credit_charge_mode: string | null;
 }
 
 export interface ServiceResourcesTable {
@@ -813,4 +820,46 @@ export interface ThemesTable {
   active: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface CreditDebtsTable {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  appointment_id: string | null;
+  service_id: string | null;
+  settled_wallet_id: string | null;
+  settled_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppointmentSchedulesTable {
+  id: string;
+  organization_id: string;
+  service_id: string;
+  location_id: string | null;
+  resource_id: string | null;
+  customer_id: string;
+  weekday: number;
+  start_minute: number;
+  duration_minutes: number | null;
+  notes: string | null;
+  on_conflict: string;
+  horizon_days: number;
+  active: number;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScheduleOccurrencesTable {
+  id: string;
+  schedule_id: string;
+  date: string;
+  appointment_id: string | null;
+  status: string;
+  reason: string | null;
+  created_at: string;
 }

@@ -18,6 +18,7 @@ import {
   Tabs,
 } from '../../components/ui.tsx';
 import { Combobox } from '../../components/combobox.tsx';
+import { CutoffSelect } from '../../components/cutoff-select.tsx';
 
 interface OrganizationView {
   id: string;
@@ -251,6 +252,49 @@ function OrganizationTab({ section }: { section: string }) {
                 }
               />
             </Field>
+
+            <Field label={t('admin.rules.minAdvance')} hint={t('admin.rules.minAdvanceHint')}>
+              <CutoffSelect
+                value={draft.settings.minAdvanceMinutes ?? 0}
+                onChange={(value) => setSetting('minAdvanceMinutes', value ?? 0)}
+              />
+            </Field>
+
+            <Field label={t('admin.rules.cancelCutoff')} hint={t('admin.rules.cancelCutoffHint')}>
+              <CutoffSelect
+                value={draft.settings.cancellationCutoffMinutes ?? 0}
+                onChange={(value) => setSetting('cancellationCutoffMinutes', value ?? 0)}
+              />
+            </Field>
+
+            <Field label={t('admin.rules.chargeMode')} hint={t('admin.rules.chargeModeHint')}>
+              <Select
+                value={draft.settings.creditChargeMode ?? 'booking'}
+                onChange={(event) => setSetting('creditChargeMode', event.target.value)}
+              >
+                <option value="booking">{t('admin.rules.chargeBooking')}</option>
+                <option value="completion">{t('admin.rules.chargeCompletion')}</option>
+              </Select>
+            </Field>
+
+            <Switch
+              checked={draft.settings.allowCreditDebt === true}
+              onChange={(value) => setSetting('allowCreditDebt', value)}
+              label={t('admin.rules.allowDebt')}
+              hint={t('admin.rules.allowDebtHint')}
+            />
+
+            {draft.settings.allowCreditDebt === true && (
+              <Field label={t('admin.rules.maxDebt')}>
+                <Input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={draft.settings.maxCreditDebt ?? 2}
+                  onChange={(event) => setSetting('maxCreditDebt', Number(event.target.value))}
+                />
+              </Field>
+            )}
           </div>
 
           <div className="divide-y divide-slate-100">

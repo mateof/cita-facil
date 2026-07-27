@@ -34,6 +34,7 @@ import System from './pages/admin/System.tsx';
 import Access from './pages/admin/Access.tsx';
 import Organizations from './pages/admin/Organizations.tsx';
 import Themes from './pages/admin/Themes.tsx';
+import Recurring from './pages/admin/Recurring.tsx';
 
 /** Exige sesión iniciada; si no la hay, manda a la pantalla de acceso. */
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -181,6 +182,7 @@ export default function App() {
         <Route path="avisos" element={<AdminNotifications />} />
         <Route path="integraciones" element={<Integrations />} />
         <Route path="ajustes" element={<Settings />} />
+        <Route path="programaciones" element={<Recurring />} />
         <Route path="temas" element={<Themes />} />
         <Route path="organizaciones" element={<Organizations />} />
         <Route path="acceso" element={<Access />} />

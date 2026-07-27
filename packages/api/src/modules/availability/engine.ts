@@ -7,6 +7,7 @@ import {
   type Interval,
 } from '@cita-facil/shared';
 import { db } from '../../db/index.js';
+import { effectiveRules, type EffectiveRules } from '../appointments/rules.js';
 import type {
   AppointmentsTable,
   LocationsTable,
@@ -131,6 +132,8 @@ interface Context {
   appointments: AppointmentRow[];
   granularity: number;
   allocationStrategy: AllocationStrategy;
+  /** Plazos ya resueltos entre el servicio y su organización. */
+  rules: EffectiveRules;
 }
 
 async function loadContext(request: AvailabilityRequest): Promise<Context> {
@@ -261,6 +264,7 @@ async function loadContext(request: AvailabilityRequest): Promise<Context> {
     appointments,
     granularity:
       request.granularityMinutes ?? settings.slotGranularityMinutes ?? 15,
+    rules: effectiveRules(service, settings),
     allocationStrategy:
       (service.allocation_strategy as AllocationStrategy | null) ??
       settings.allocationStrategy ??
@@ -269,6 +273,9 @@ async function loadContext(request: AvailabilityRequest): Promise<Context> {
 }
 
 interface OrgSettings {
+  minAdvanceMinutes?: number;
+  cancellationCutoffMinutes?: number;
+  creditChargeMode?: 'booking' | 'completion';
   slotGranularityMinutes?: number;
   allocationStrategy?: AllocationStrategy;
   holdMinutes?: number;
@@ -540,7 +547,8 @@ export async function computeAvailability(
           date === today
             ? startMinute - currentMinute
             : (Date.parse(localToInstant(date, startMinute, timezone)) - now.getTime()) / 60_000;
-        if (minutesFromNow < service.min_advance_minutes) continue;
+        // El servicio puede heredar el plazo de su organización.
+        if (minutesFromNow < context.rules.minAdvanceMinutes) continue;
       }
 
       const availableResources: string[] = [];

@@ -219,3 +219,21 @@ export type WaitlistStatus = (typeof WAITLIST_STATUSES)[number];
 /** Días de la semana en notación ISO: 1 = lunes ... 7 = domingo. */
 export const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 export type Weekday = (typeof WEEKDAYS)[number];
+
+/**
+ * Cuándo se descuenta la sesión del bono.
+ *
+ * `booking` es lo que se ha hecho siempre: la plaza se ocupa al reservar y la
+ * sesión también. `completion` la cobra al dar la cita por hecha, que encaja
+ * cuando el servicio a veces no se llega a prestar.
+ */
+export const CREDIT_CHARGE_MODES = ['booking', 'completion'] as const;
+export type CreditChargeMode = (typeof CREDIT_CHARGE_MODES)[number];
+
+/** Lo mismo, más la opción de seguir lo que diga la organización. */
+export const SERVICE_CREDIT_CHARGE_MODES = ['inherit', 'booking', 'completion'] as const;
+export type ServiceCreditChargeMode = (typeof SERVICE_CREDIT_CHARGE_MODES)[number];
+
+/** Qué hacer cuando una programación semanal no encuentra hueco. */
+export const SCHEDULE_CONFLICT_MODES = ['skip', 'nearest', 'force'] as const;
+export type ScheduleConflictMode = (typeof SCHEDULE_CONFLICT_MODES)[number];

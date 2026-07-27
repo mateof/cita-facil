@@ -17,6 +17,7 @@ import { isoNow } from '../../lib/dates.js';
 import { BadRequestError, ConflictError, NotFoundError } from '../../lib/errors.js';
 import { recordAudit } from '../audit/service.js';
 import { notify } from '../notifications/service.js';
+import { settleDebtsWithWallet } from './debts.js';
 
 /**
  * Bonos: series de sesiones prepagadas.
@@ -593,6 +594,10 @@ export async function grantPack(params: {
     changes: { userId: params.userId, packId: pack.id, credits, expiresAt },
   });
 
+  // Lo que se debía se cobra de este bono en cuanto entra, sin que nadie tenga
+  // que acordarse en el mostrador.
+  await settleDebtsWithWallet(params.organizationId, params.userId, id);
+
   if (!params.silent) {
     await notify({
       organizationId: params.organizationId,
@@ -709,6 +714,22 @@ async function usableWallets(
       return ids.length === 0 || ids.includes(serviceId);
     })
     .sort((a, b) => (a.expires_at ?? '9999').localeCompare(b.expires_at ?? '9999'));
+}
+
+/**
+ * ¿Le queda alguna sesión utilizable para este servicio?
+ *
+ * Se usa al reservar cuando el bono se cobra al completar: la sesión no se toca
+ * todavía, pero no tiene sentido dejar reservar a quien no va a poder pagarla.
+ */
+export async function hasUsableCredit(
+  organizationId: string,
+  userId: string,
+  serviceId: string,
+  executor: Executor = db(),
+): Promise<boolean> {
+  const wallets = await usableWallets(organizationId, userId, serviceId, executor);
+  return wallets.some((row) => row.credits_total - row.credits_used > 0);
 }
 
 export async function balanceFor(
