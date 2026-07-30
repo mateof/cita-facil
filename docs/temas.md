@@ -98,6 +98,21 @@ organización: las variables CSS calculadas, la hoja propia ya limpia y la marca
 de la cabecera. El navegador solo tiene que ponerlas en el documento, así que no
 necesita saber nada del catálogo.
 
+El tema se aplica en el **contenedor del portal de cliente**, no en la página de
+reservas: "Mis citas", "Mis bonos" y "Perfil" son pantallas comunes que no
+llevan el negocio en la dirección, y aplicándolo solo en la reserva el cliente
+perdía el aspecto y el nombre en cuanto salía de ella.
+
+Para saber a qué negocio pertenece una de esas pantallas comunes se recuerda la
+última organización por la que se entró (en `sessionStorage`, así que sobrevive
+a una recarga pero no a cerrar la pestaña). Volver a la **portada común** lo
+olvida: esa página es de la instalación, no de ningún negocio. Quien entra
+directamente a `/mis-citas` sin pasar por un negocio ve la aplicación tal cual.
+
+Un matiz: "Mis citas" puede listar citas de varios negocios, y en ese caso se
+enseña la marca de aquel por el que se entró. Es el compromiso de tener
+pantallas comunes con marca propia.
+
 Mientras hay un tema puesto, el elemento raíz lleva `data-tema`, que enciende
 unas reglas puente en `index.css`. La interfaz está escrita con las utilidades
 de Tailwind (`bg-white`, `text-slate-900`), que son colores fijos; esas reglas

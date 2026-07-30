@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { NavLink, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { FONT_STACKS, headerLabels, isReservedSlug } from '@cita-facil/shared';
+import { FONT_STACKS, headerLabels } from '@cita-facil/shared';
 import { api } from '../lib/api.ts';
 import type { PublicOrganization } from '../lib/types.ts';
 import { EntityAvatar } from './avatar.tsx';
+import { organizationFromPath } from '../stores/organization-context.ts';
 
 /**
  * Lo que se lee arriba a la izquierda.
@@ -23,8 +24,9 @@ export function HeaderBrand() {
   const { t } = useTranslation();
   const location = useLocation();
 
-  const primerTramo = location.pathname.split('/')[1] ?? '';
-  const slug = primerTramo && !isReservedSlug(primerTramo) ? primerTramo : null;
+  // La misma regla que usa el layout para el tema: la dirección manda y, en
+  // las pantallas comunes, vale la última organización por la que se entró.
+  const slug = organizationFromPath(location.pathname);
 
   const organizacion = useQuery({
     enabled: Boolean(slug),

@@ -5,10 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import { renderRichText } from '../lib/richtext.ts';
-import type { PublicOrganization, PublicPage } from '../lib/types.ts';
+import type { PublicPage } from '../lib/types.ts';
 import { ErrorMessage, LoadingBlock } from '../components/ui.tsx';
 import { OrganizationFooter } from '../components/OrganizationFooter.tsx';
-import { useOrganizationTheme } from '../components/theme.tsx';
 
 /**
  * Página de contenido de un establecimiento: contacto o sobre nosotros.
@@ -29,14 +28,6 @@ export default function OrganizationPage({ pageKey }: { pageKey: 'contact' | 'ab
       }),
     retry: false,
   });
-
-  // El tema del negocio también viste sus páginas de contenido: sin esto, ir
-  // de la reserva a "sobre nosotros" cambiaría de aspecto a medio camino.
-  const organizacion = useQuery({
-    queryKey: ['public-org', slug],
-    queryFn: () => api.get<PublicOrganization>(`/public/organizations/${slug}`),
-  });
-  useOrganizationTheme(organizacion.data?.theme);
 
   const html = useMemo(
     () => (page.data ? renderRichText(page.data.body, page.data.format) : ''),

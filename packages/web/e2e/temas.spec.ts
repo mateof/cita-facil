@@ -226,3 +226,80 @@ test.describe('llevar un tema a otro sitio', () => {
     await expect(dialogo.getByRole('alert')).toBeVisible();
   });
 });
+
+/**
+ * El portal comparte pantallas entre negocios.
+ *
+ * "Mis citas", "Mis bonos" y "Perfil" no llevan el negocio en la dirección, así
+ * que hay que recordar desde dónde se entró: si no, el cliente pierde el
+ * aspecto y el nombre del sitio en el que cree estar en cuanto sale de la
+ * reserva.
+ */
+test.describe('el tema sigue al cliente por el portal', () => {
+  async function activarTema(request: APIRequestContext): Promise<void> {
+    const token = await tokenDe(request, CUENTAS.admin);
+    const cabeceras = { authorization: `Bearer ${token}` };
+    const organizacion = await organizacionId(request);
+
+    const creado = (await (
+      await request.post(`/api/v1/organizations/${organizacion}/themes`, {
+        headers: cabeceras,
+        data: {
+          name: 'Para todo el portal',
+          tokens: { background: '#101820' },
+          header: { longName: 'Peluquería del Centro', shortName: 'PDC' },
+        },
+      })
+    ).json()) as { id: string };
+
+    await request.post(`/api/v1/organizations/${organizacion}/themes/${creado.id}/activate`, {
+      headers: cabeceras,
+    });
+  }
+
+  test('el tema se mantiene al ir a Mis citas', async ({ page, request }) => {
+    await activarTema(request);
+    await entrar(page, CUENTAS.cliente);
+
+    await page.goto(`/${ORGANIZACION_SLUG}`);
+    await expect(page.getByTestId('servicio').first()).toBeVisible();
+    await page.goto('/mis-citas');
+    await expect(page.getByRole('heading', { name: 'Mis citas' })).toBeVisible();
+
+    const fondo = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(fondo).toBe('rgb(16, 24, 32)');
+  });
+
+  test('la marca se mantiene al ir a Mis bonos', async ({ page, request }) => {
+    await activarTema(request);
+    await entrar(page, CUENTAS.cliente);
+
+    await page.goto(`/${ORGANIZACION_SLUG}`);
+    await expect(page.getByTestId('servicio').first()).toBeVisible();
+    await page.goto('/mis-bonos');
+
+    // En escritorio se lee el nombre largo y en móvil el corto: se busca el
+    // que esté visible, no el primero del marcado.
+    await expect(
+      page
+        .getByRole('banner')
+        .getByText(/Peluquería del Centro|PDC/)
+        .locator('visible=true')
+        .first(),
+    ).toBeVisible();
+  });
+
+  test('entrando directamente a Mis citas, sin pasar por el negocio, no hay tema', async ({
+    page,
+    request,
+  }) => {
+    await activarTema(request);
+    await entrar(page, CUENTAS.cliente);
+
+    await page.goto('/mis-citas');
+    await expect(page.getByRole('heading', { name: 'Mis citas' })).toBeVisible();
+
+    const marcado = await page.evaluate(() => document.documentElement.dataset.tema ?? null);
+    expect(marcado).toBe(null);
+  });
+});

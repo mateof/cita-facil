@@ -18,7 +18,6 @@ import {
 import clsx from 'clsx';
 import { api, ApiError } from '../lib/api.ts';
 import { EntityAvatar } from '../components/avatar.tsx';
-import { useOrganizationTheme } from '../components/theme.tsx';
 import {
   addDaysIso,
   formatDate,
@@ -105,14 +104,10 @@ export default function Book() {
   );
 
   /*
-   * Aspecto del establecimiento.
-   *
-   * El tema, si tiene uno, manda sobre el color de marca suelto de los
-   * ajustes: es más completo y lo incluye. Sin tema se sigue aplicando el
-   * color a secas, que es lo que ya usaban las organizaciones de antes.
+   * El tema lo aplica el contenedor del portal, que envuelve también a "Mis
+   * citas" y compañía. Aquí solo queda el color de marca suelto de los ajustes,
+   * para las organizaciones que no tengan tema.
    */
-  useOrganizationTheme(data?.theme);
-
   useEffect(() => {
     if (data?.theme || !organization?.branding.brandColor) return;
     document.documentElement.style.setProperty('--brand', organization.branding.brandColor);

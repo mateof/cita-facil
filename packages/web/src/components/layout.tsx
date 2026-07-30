@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router';
+import { useEffect, useState, type ReactNode } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import {
@@ -25,7 +25,17 @@ import {
   Building2,
   X,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { isReservedSlug } from '@cita-facil/shared';
+import { api } from '../lib/api.ts';
+import type { PublicOrganization } from '../lib/types.ts';
 import { useAuth } from '../stores/auth.ts';
+import {
+  forgetOrganization,
+  organizationFromPath,
+  rememberOrganization,
+} from '../stores/organization-context.ts';
+import { useOrganizationTheme } from './theme.tsx';
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from '../i18n/index.ts';
 import FirstOrganization from './FirstOrganization.tsx';
 import { HeaderBrand } from './header-brand.tsx';
@@ -68,6 +78,33 @@ export function CustomerLayout() {
   const isStaff = useAuth((state) => state.isStaff());
   const logout = useAuth((state) => state.logout);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  /*
+   * El aspecto del negocio se aplica aquí y no en la página de reservas porque
+   * "Mis citas", "Mis bonos" y "Perfil" son pantallas comunes que no llevan el
+   * negocio en la dirección: aplicándolo solo allí, el cliente perdía el tema y
+   * el nombre en cuanto salía de la reserva.
+   */
+  const slug = organizationFromPath(location.pathname);
+
+  useEffect(() => {
+    const enLaRuta = location.pathname.split('/')[1] ?? '';
+    if (enLaRuta && !isReservedSlug(enLaRuta)) {
+      rememberOrganization(enLaRuta);
+    } else if (location.pathname === '/') {
+      // La portada es de la instalación, no de ningún negocio.
+      forgetOrganization();
+    }
+  }, [location.pathname]);
+
+  const organizacion = useQuery({
+    enabled: Boolean(slug),
+    queryKey: ['public-org', slug],
+    queryFn: () => api.get<PublicOrganization>(`/public/organizations/${slug}`),
+  });
+
+  useOrganizationTheme(organizacion.data?.theme);
 
   const items = [
     { to: '/', label: t('nav.book'), icon: Home, end: true },

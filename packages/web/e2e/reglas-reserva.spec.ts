@@ -110,16 +110,21 @@ test.describe('sesiones a deber', () => {
     ).json()) as { services: { id: string; name: string }[] };
     const servicio = publica.services.find((item) => item.name === 'Sesión de bronceado')!;
 
+    // Rango de tres semanas: pidiendo un solo día, lo que hayan reservado las
+    // pruebas anteriores puede dejarlo sin ningún hueco.
+    const hasta = new Date();
+    hasta.setDate(hasta.getDate() + 21);
     const disponibilidad = (await (
       await request.get(
-        `/api/v1/public/organizations/${organizacion}/availability?serviceId=${servicio.id}&from=${new Date().toISOString().slice(0, 10)}`,
+        `/api/v1/public/organizations/${organizacion}/availability?serviceId=${servicio.id}&from=${new Date().toISOString().slice(0, 10)}&to=${hasta.toISOString().slice(0, 10)}`,
       )
     ).json()) as { days: { slots: { startsAt: string }[] }[] };
-    const hueco = disponibilidad.days.flatMap((dia) => dia.slots)[0]!;
+    const hueco = disponibilidad.days.flatMap((dia) => dia.slots)[0];
+    expect(hueco, 'la agenda de pruebas se ha quedado sin huecos').toBeDefined();
 
     const respuesta = await request.post(`/api/v1/organizations/${organizacion}/appointments`, {
       headers: { authorization: `Bearer ${token}` },
-      data: { serviceId: servicio.id, startsAt: hueco.startsAt },
+      data: { serviceId: servicio.id, startsAt: hueco!.startsAt },
     });
 
     expect(respuesta.status()).toBe(403);
