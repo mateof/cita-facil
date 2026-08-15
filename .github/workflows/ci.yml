@@ -1,0 +1,207 @@
+###############################################################################
+# Integración continua
+#
+# Se ejecuta en las propuestas de cambio contra `develop` y `main`, y también al
+# empujar a esas ramas, para que el estado de la rama protegida se vea siempre y
+# no solo cuando alguien abre una propuesta.
+#
+# Son tres trabajos en paralelo. Separarlos hace que el fallo se lea de un
+# vistazo: si se cae "comprobaciones" es un problema de tipos o de estilo, si se
+# cae "backend" es lógica de dominio, y si se cae "e2e" es la aplicación real
+# vista desde el navegador.
+###############################################################################
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  # Permite lanzarlo a mano desde la pestaña Actions.
+  workflow_dispatch:
+
+# Una propuesta de cambio con varios empujones seguidos no necesita mantener las
+# ejecuciones antiguas: se queda con la última.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # La misma versión que usa la imagen de producción.
+  NODE_VERSION: '24'
+
+jobs:
+  comprobaciones:
+    name: Tipos y estilo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      # El paquete compartido se compila a dist/, que no se versiona. Sin él, ni
+      # el API ni la web pueden resolver sus importaciones.
+      - name: Compilar el paquete compartido
+        run: npm run build -w @cita-facil/shared
+
+      - name: Comprobar tipos
+        run: npm run typecheck
+
+      - name: Estilo
+        run: npm run lint
+
+  backend:
+    name: Pruebas de backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Compilar el paquete compartido
+        run: npm run build -w @cita-facil/shared
+
+      - name: Pruebas
+        run: npm test
+
+  e2e:
+    name: Pruebas end-to-end
+    runs-on: ubuntu-latest
+    # Compilar, arrancar el binario y recorrer la aplicación con dos navegadores
+    # lleva su tiempo; el tope evita que un cuelgue consuma minutos sin fin.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      # Este trabajo compila el frontend, y para eso hacen falta los binarios
+      # nativos de rollup, lightningcss y esbuild. El fichero de bloqueo se
+      # genera en Windows y npm no guarda en él los binarios de otras
+      # plataformas (npm/cli#4828), así que "npm ci" deja la compilación sin
+      # ellos. Resolver las dependencias desde cero en Linux los instala todos,
+      # en vez de ir añadiéndolos uno a uno cada vez que aparece otro.
+      #
+      # Se pierde la reproducibilidad exacta solo en este trabajo; los otros dos
+      # siguen usando "npm ci". La solución de fondo es generar el fichero de
+      # bloqueo en Linux y versionarlo.
+      - name: Instalar dependencias resolviendo para esta plataforma
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit --no-fund
+
+      # Solo Chromium: los dos proyectos de la suite (escritorio y móvil) usan
+      # el mismo motor, así que descargar Firefox y WebKit sería tiempo tirado.
+      - name: Instalar Chromium para Playwright
+        run: npx playwright install --with-deps chromium
+        working-directory: packages/web
+
+      # Las pruebas atacan al binario compilado, no al servidor de desarrollo.
+      # Este "build" ya compila el paquete compartido en primer lugar.
+      - name: Compilar
+        run: npm run build
+
+      - name: Pruebas end-to-end
+        run: npm run test:e2e -w @cita-facil/web
+
+      # Capturas, vídeos y trazas de lo que haya fallado. Sin esto, un fallo que
+      # no se reproduce en local deja de ser diagnosticable.
+      - name: Guardar el rastro de los fallos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-fallos
+          path: packages/web/e2e/.results/
+          retention-days: 7
+
+  # ---------------------------------------------------------------- publicación
+  # Imagen de contenedor en el registro de GitHub. Solo al empujar a develop o a
+  # main, nunca en una propuesta de cambio, y solo si los tres trabajos
+  # anteriores han pasado: una imagen que no supera las pruebas no debería poder
+  # desplegarse por descuido.
+  publicar:
+    name: Publicar imagen
+    runs-on: ubuntu-latest
+    needs: [comprobaciones, backend, e2e]
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # Tres etiquetas por publicación:
+      #   - móvil     (latest / latest-dev), la que apunta siempre a lo último;
+      #   - versión   (1.2.3 / 1.2.3-dev), la del package.json;
+      #   - instante  (1.2.3-20260726-1930), única e inmutable, para saber con
+      #               exactitud qué se desplegó y poder volver a ella.
+      - name: Calcular etiquetas
+        id: etiquetas
+        run: |
+          version=$(node -p "require('./package.json').version")
+          instante=$(date -u +'%Y%m%d-%H%M')
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            movil="latest"
+            serie="$version"
+          else
+            movil="latest-dev"
+            serie="$version-dev"
+          fi
+          imagen="ghcr.io/${{ github.repository }}"
+          # `tr` pasa a minúsculas: el nombre del repositorio puede llevar
+          # mayúsculas y un registro de contenedores no las admite.
+          imagen=$(echo "$imagen" | tr '[:upper:]' '[:lower:]')
+          {
+            echo "version=$version"
+            echo "instante=$instante"
+            echo "lista=$imagen:$movil,$imagen:$serie,$imagen:$serie-$instante"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Entrar en el registro
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir y publicar
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.etiquetas.outputs.lista }}
+          # La caché de la propia acción evita reinstalar dependencias en cada
+          # publicación cuando no han cambiado.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.etiquetas.outputs.version }}
+            org.opencontainers.image.created=${{ steps.etiquetas.outputs.instante }}
+
+      - name: Resumen
+        run: |
+          echo "### Imagen publicada" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          for etiqueta in $(echo "${{ steps.etiquetas.outputs.lista }}" | tr ',' ' '); do
+            echo "- \`$etiqueta\`" >> "$GITHUB_STEP_SUMMARY"
+          done

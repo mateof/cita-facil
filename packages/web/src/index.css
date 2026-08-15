@@ -1,0 +1,262 @@
+@import 'tailwindcss';
+
+/**
+ * Tema.
+ *
+ * Los colores se declaran como variables de tema de Tailwind 4, así que
+ * `bg-brand`, `text-brand` y compañía se generan solos. La marca es una
+ * variable CSS que la organización puede sobrescribir en tiempo de ejecución
+ * desde sus ajustes, sin recompilar.
+ */
+@theme {
+  --color-brand: var(--brand, #2563eb);
+  --color-brand-dark: color-mix(in oklab, var(--brand, #2563eb) 85%, black);
+  --color-brand-soft: color-mix(in oklab, var(--brand, #2563eb) 12%, white);
+
+  /*
+   * Cada color del tema cuelga de una variable `--tema-*` con su valor de
+   * serie como respaldo. El tema de una organización solo tiene que escribir
+   * esas variables en el elemento raíz: si no hay tema, o si le falta un
+   * ajuste, se ve exactamente lo de siempre.
+   */
+  --color-surface: var(--tema-superficie, #ffffff);
+  --color-surface-muted: var(--tema-fondo, #f6f7f9);
+  --color-border-subtle: var(--tema-borde, #e5e7eb);
+  --color-body: var(--tema-texto, #0f172a);
+  --color-body-muted: var(--tema-texto-suave, #64748b);
+  --color-ok: var(--tema-exito, #16a34a);
+  --color-warn: var(--tema-aviso, #d97706);
+  --color-bad: var(--tema-error, #dc2626);
+
+  --font-sans:
+    var(
+      --tema-fuente,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif
+    );
+
+  --radius-card: var(--tema-radio-tarjeta, 1rem);
+  --radius-button: var(--tema-radio-boton, 0.75rem);
+  --radius-input: var(--tema-radio-campo, 0.75rem);
+}
+
+:root {
+  --brand: #2563eb;
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-surface-muted antialiased;
+  color: var(--color-body);
+  font-family: var(--font-sans);
+  font-size: var(--tema-tamano-base, 16px);
+  letter-spacing: var(--tema-espaciado-letras, normal);
+  /* Deja hueco para la barra inferior en móviles con área segura. */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* La animación de entrada se desactiva para quien pide menos movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer components {
+  .card {
+    @apply border p-4;
+    background: var(--color-surface);
+    border-color: var(--color-border-subtle);
+    border-width: var(--tema-grosor-borde, 1px);
+    border-radius: var(--radius-card);
+    box-shadow: var(--tema-sombra, 0 1px 2px rgb(15 23 42 / 0.06), 0 1px 3px rgb(15 23 42 / 0.1));
+    padding: calc(1rem * var(--tema-densidad, 1));
+  }
+
+  /*
+   * Tailwind 4 no permite aplicar con `@apply` una clase de componente
+   * definida en la propia hoja, así que la base se comparte con una lista de
+   * selectores en lugar de heredarse desde `.btn`.
+   */
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold
+      transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+    border-radius: var(--radius-button);
+    /* 44 px de alto mínimo: es el objetivo táctil cómodo en móvil. */
+    min-height: 2.75rem;
+  }
+
+  .btn-primary {
+    @apply bg-brand hover:bg-brand-dark;
+    color: var(--brand-text, #ffffff);
+  }
+
+  .btn-secondary {
+    @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+  }
+
+  .btn-ghost {
+    @apply text-slate-600 hover:bg-slate-100;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700;
+  }
+
+  .input {
+    @apply w-full border px-3 py-2.5 text-base
+      outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20
+      disabled:bg-slate-100;
+    background: var(--color-surface);
+    border-color: var(--color-border-subtle);
+    border-radius: var(--radius-input);
+    min-height: 2.75rem;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-slate-700;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded-lg bg-slate-200;
+  }
+}
+
+
+/*
+ * Puente para las pantallas públicas cuando hay un tema activo.
+ *
+ * La interfaz está escrita con las utilidades de Tailwind (`bg-white`,
+ * `text-slate-900`), que son colores fijos. Reasignarlas aquí, y solo mientras
+ * hay un tema puesto, evita repasar cada clase de cada pantalla y que la
+ * siguiente que se escriba se olvide de usar las variables. El atributo lo pone
+ * y lo quita el propio tema, así que el panel nunca se ve afectado.
+ */
+:root[data-tema] body {
+  background-color: var(--tema-fondo);
+}
+
+:root[data-tema] .bg-white,
+:root[data-tema] .bg-white\/95 {
+  background-color: var(--tema-superficie);
+}
+
+:root[data-tema] .bg-slate-50 {
+  background-color: var(--tema-fondo);
+}
+
+:root[data-tema] .text-slate-900,
+:root[data-tema] .text-slate-800,
+:root[data-tema] .text-slate-700 {
+  color: var(--tema-texto);
+}
+
+:root[data-tema] .text-slate-500,
+:root[data-tema] .text-slate-400 {
+  color: var(--tema-texto-suave);
+}
+
+:root[data-tema] .border-slate-200,
+:root[data-tema] .border-slate-300,
+:root[data-tema] .divide-slate-100 > * + * {
+  border-color: var(--tema-borde);
+}
+
+:root[data-tema] header {
+  background-color: var(--tema-cabecera-fondo);
+  color: var(--tema-cabecera-texto);
+}
+
+/* Barra de desplazamiento discreta en las agendas largas. */
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-slate-300;
+}
+
+/*
+ * Contenido escrito por el establecimiento (contacto, sobre nosotros).
+ *
+ * Tailwind no da estilo a las etiquetas sueltas, y aquí el HTML no lo genera
+ * la aplicación sino quien redacta la página, así que hay que vestirlo por
+ * selector. Es un subconjunto pequeño a propósito: lo que admite el saneador.
+ */
+.prose-simple {
+  @apply text-slate-700;
+}
+.prose-simple > * + * {
+  @apply mt-3;
+}
+.prose-simple h1,
+.prose-simple h2,
+.prose-simple h3,
+.prose-simple h4 {
+  @apply mt-6 font-bold text-slate-900;
+}
+.prose-simple h1 {
+  @apply text-xl;
+}
+.prose-simple h2 {
+  @apply text-lg;
+}
+.prose-simple h3 {
+  @apply text-base;
+}
+.prose-simple a {
+  @apply text-brand underline underline-offset-2;
+}
+.prose-simple ul {
+  @apply list-disc space-y-1 pl-5;
+}
+.prose-simple ol {
+  @apply list-decimal space-y-1 pl-5;
+}
+.prose-simple blockquote {
+  @apply border-l-4 border-slate-200 pl-4 text-slate-600 italic;
+}
+.prose-simple code {
+  @apply rounded bg-slate-100 px-1 py-0.5 font-mono text-sm;
+}
+.prose-simple pre {
+  @apply overflow-x-auto rounded-xl bg-slate-900 p-4 text-sm text-slate-100;
+}
+.prose-simple pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+.prose-simple img {
+  @apply max-w-full rounded-xl;
+}
+.prose-simple table {
+  @apply w-full border-collapse text-sm;
+}
+.prose-simple th,
+.prose-simple td {
+  @apply border border-slate-200 px-3 py-2 text-left;
+}
+.prose-simple hr {
+  @apply border-slate-200;
+}

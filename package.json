@@ -1,0 +1,53 @@
+{
+  "name": "cita-facil",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Plataforma genérica de gestión de citas online para establecimientos",
+  "author": "Mateo Fuentes Pombo <mateof@gmail.com>",
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "workspaces": [
+    "packages/shared",
+    "packages/api",
+    "packages/web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "tsx watch packages/api/src/main.ts",
+    "dev:web": "npm run dev -w @cita-facil/web",
+    "build": "npm run build -w @cita-facil/shared && npm run build -w @cita-facil/api && npm run build -w @cita-facil/web",
+    "build:api": "npm run build -w @cita-facil/shared && npm run build -w @cita-facil/api",
+    "start": "node packages/api/dist/main.js",
+    "cli": "tsx packages/api/src/db/cli.ts",
+    "migrate": "tsx packages/api/src/db/cli.ts up",
+    "migrate:down": "tsx packages/api/src/db/cli.ts down",
+    "migrate:status": "tsx packages/api/src/db/cli.ts status",
+    "seed": "tsx packages/api/src/db/cli.ts seed",
+    "admin": "tsx packages/api/src/db/cli.ts admin",
+    "backup": "tsx packages/api/src/db/cli.ts backup",
+    "restore": "tsx packages/api/src/db/cli.ts restore",
+    "test": "npm run test -w @cita-facil/api",
+    "test:e2e": "npm run build && npm run test:e2e -w @cita-facil/web",
+    "test:all": "npm test && npm run test:e2e",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint packages --ext .ts,.tsx",
+    "format": "prettier --write \"packages/**/*.{ts,tsx,json,css,md}\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.2",
+    "concurrently": "^9.1.0",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.1"
+  },
+  "comentario-overrides": "@fastify/swagger-ui todavía pide @fastify/static 9, que arrastra avisos de travesía de rutas. La 10 es compatible con lo que usa (servir estáticos con prefijo), así que se fuerza.",
+  "overrides": {
+    "@fastify/static": "^10.1.2"
+  }
+}

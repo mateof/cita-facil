@@ -141,3 +141,19 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# CitaFácil: datos de la instalación (base de datos, copias, CRL descargadas)
+data/
+
+# Playwright: informes, trazas y capturas de las pruebas end-to-end
+playwright-report/
+test-results/
+packages/web/e2e/.results/
+blob-report/
+.playwright/
+
+# Certificados: las CA de confianza y el certificado TLS del servidor no se
+# versionan. El README de config/trust explica de dónde se descargan.
+config/trust/*
+!config/trust/README.md
+config/tls/

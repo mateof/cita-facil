@@ -1,0 +1,149 @@
+###############################################################################
+# CitaFácil
+#
+# Por defecto arranca solo la aplicación con SQLite, sin dependencias externas:
+#
+#   docker compose up -d
+#
+# Los motores de base de datos y el proxy con mTLS son perfiles opcionales:
+#
+#   docker compose --profile postgres up -d
+#   docker compose --profile mysql up -d
+#   docker compose --profile mssql up -d
+#   docker compose --profile proxy up -d      # nginx con DNIe / certificado
+#   docker compose --profile redis up -d      # caché de sesión y limitador
+#
+# Recuerda copiar `.env.example` a `.env` y poner al menos APP_SECRET.
+###############################################################################
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cita-facil:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Estas rutas viven dentro del volumen persistente.
+      DATA_DIR: /data
+      DB_FILE: /data/cita-facil.sqlite
+      BACKUP_DIR: /data/backups
+      CERT_CRL_DIR: /data/crl
+      CERT_TRUST_DIR: /app/config/trust
+    ports:
+      - '${PORT:-3000}:3000'
+    volumes:
+      - cita-facil-data:/data
+      # Autoridades de certificación de confianza para DNIe y FNMT.
+      - ./config/trust:/app/config/trust:ro
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # --------------------------------------------------------------------- Redis
+  # Opcional. Sin él la aplicación funciona igual, con el limitador contando en
+  # memoria de cada proceso y la sesión consultada en la base de datos. Hace
+  # falta cuando se levantan varias instancias detrás de un balanceador.
+  #
+  # Para usarlo: descomenta REDIS_URL en .env y arranca con --profile redis.
+  redis:
+    image: redis:7-alpine
+    profiles: ['redis']
+    restart: unless-stopped
+    # Sin persistencia a propósito: aquí no hay nada que no esté en SQL, así
+    # que se puede reiniciar sin perder datos.
+    command: ['redis-server', '--save', '', '--appendonly', 'no', '--maxmemory', '128mb', '--maxmemory-policy', 'allkeys-lru']
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # --------------------------------------------------------------- PostgreSQL
+  postgres:
+    image: postgres:17-alpine
+    profiles: ['postgres']
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-citafacil}
+      POSTGRES_USER: ${DB_USER:-citafacil}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-citafacil}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-citafacil}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ------------------------------------------------------------ MySQL/MariaDB
+  mariadb:
+    image: mariadb:11
+    profiles: ['mysql']
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-citafacil}
+      MARIADB_USER: ${DB_USER:-citafacil}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-citafacil}
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD:-citafacil}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    ports:
+      - '3306:3306'
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------- SQL Server
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    profiles: ['mssql']
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: 'Y'
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD:-CitaFacil2026!}
+      MSSQL_PID: Developer
+    volumes:
+      - mssql-data:/var/opt/mssql
+    ports:
+      - '1433:1433'
+
+  # -------------------------------------------------------- Proxy con mTLS
+  # Termina TLS y pide el certificado de cliente (DNIe o FNMT), reenviándolo
+  # a la aplicación en las cabeceras que espera CERT_HEADER y CERT_VERIFY_HEADER.
+  proxy:
+    image: nginx:1.27-alpine
+    profiles: ['proxy']
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./config/tls:/etc/nginx/tls:ro
+      - ./config/trust:/etc/nginx/trust:ro
+
+volumes:
+  cita-facil-data:
+  postgres-data:
+  mariadb-data:
+  mssql-data:
