@@ -2,8 +2,13 @@ import { expect, test, type APIRequestContext } from '@playwright/test';
 import { CUENTAS, ORGANIZACION_SLUG, entrar, tokenDe } from './helpers.ts';
 
 /**
- * Deja una cita nueva para mañana y devuelve el nombre con el que aparece en el
- * panel.
+ * Deja una cita nueva en el primer día próximo con huecos libres y devuelve el
+ * nombre con el que aparece en el panel y cuántos días hay que avanzar desde
+ * hoy para verla.
+ *
+ * No vale con reservar "mañana" a secas: el horario de ejemplo cierra los
+ * domingos, así que los sábados no habría ningún hueco y el test caería. Se
+ * recorren los días siguientes hasta dar con uno abierto.
  *
  * Registrar una llegada no tiene vuelta atrás (`checked_in` no puede volver a
  * `confirmed`, y así debe ser), y los dos proyectos (escritorio y móvil)
@@ -11,7 +16,9 @@ import { CUENTAS, ORGANIZACION_SLUG, entrar, tokenDe } from './helpers.ts';
  * ejemplo, el segundo ya no encuentra el botón. Cada uno crea la suya, con
  * nombre propio para no confundirlas entre sí.
  */
-async function citaParaRegistrar(request: APIRequestContext): Promise<string> {
+async function citaParaRegistrar(
+  request: APIRequestContext,
+): Promise<{ nombre: string; saltos: number }> {
   const nombre = `Cliente de paso ${Date.now().toString().slice(-5)}`;
 
   const publica = (await (
@@ -23,34 +30,40 @@ async function citaParaRegistrar(request: APIRequestContext): Promise<string> {
   const organizacion = publica.organization.id;
   const servicio = publica.services[0].id;
 
-  // El día siguiente en la zona de la organización, que es el que enseña el
-  // panel al pulsar "Siguiente". Calcularlo en UTC no vale: a última hora del
-  // día señalaría al siguiente. `sv-SE` da el formato `YYYY-MM-DD`.
-  const dia = new Intl.DateTimeFormat('sv-SE', {
+  // Días en la zona de la organización, que son los que enseña el panel al
+  // pulsar "Siguiente". Calcularlos en UTC no vale: a última hora del día
+  // señalarían al siguiente. `sv-SE` da el formato `YYYY-MM-DD`.
+  const enLaZona = new Intl.DateTimeFormat('sv-SE', {
     timeZone: publica.organization.timezone,
-  }).format(new Date(Date.now() + 24 * 60 * 60 * 1000));
-
-  const disponibilidad = (await (
-    await request.get(
-      `/api/v1/public/organizations/${organizacion}/availability?serviceId=${servicio}&from=${dia}&to=${dia}`,
-    )
-  ).json()) as { days: { date: string; slots: { startsAt: string; resourceIds: string[] }[] }[] };
-  const huecos = disponibilidad.days.find((jornada) => jornada.date === dia)?.slots ?? [];
-  expect(huecos.length).toBeGreaterThan(0);
-
-  // Sin token a propósito: reservando como personal, la cita se apunta a la
-  // cuenta que la crea y en el panel saldría con el nombre del administrador.
-  const response = await request.post(`/api/v1/organizations/${organizacion}/appointments`, {
-    data: {
-      serviceId: servicio,
-      startsAt: huecos[0].startsAt,
-      resourceId: huecos[0].resourceIds[0],
-      guest: { name: nombre, email: 'cliente-de-paso@ejemplo.es' },
-    },
   });
-  expect(response.status()).toBe(201);
 
-  return nombre;
+  for (let saltos = 1; saltos <= 7; saltos++) {
+    const dia = enLaZona.format(new Date(Date.now() + saltos * 24 * 60 * 60 * 1000));
+
+    const disponibilidad = (await (
+      await request.get(
+        `/api/v1/public/organizations/${organizacion}/availability?serviceId=${servicio}&from=${dia}&to=${dia}`,
+      )
+    ).json()) as { days: { date: string; slots: { startsAt: string; resourceIds: string[] }[] }[] };
+    const huecos = disponibilidad.days.find((jornada) => jornada.date === dia)?.slots ?? [];
+    if (huecos.length === 0) continue;
+
+    // Sin token a propósito: reservando como personal, la cita se apunta a la
+    // cuenta que la crea y en el panel saldría con el nombre del administrador.
+    const response = await request.post(`/api/v1/organizations/${organizacion}/appointments`, {
+      data: {
+        serviceId: servicio,
+        startsAt: huecos[0].startsAt,
+        resourceId: huecos[0].resourceIds[0],
+        guest: { name: nombre, email: 'cliente-de-paso@ejemplo.es' },
+      },
+    });
+    expect(response.status()).toBe(201);
+
+    return { nombre, saltos };
+  }
+
+  throw new Error('no hay ningún hueco libre en los próximos 7 días');
 }
 
 /**
@@ -102,12 +115,14 @@ test.describe('panel de administración', () => {
   }
 
   test('el panel del día permite registrar la llegada de una cita', async ({ page, request }) => {
-    const cliente = await citaParaRegistrar(request);
+    const { nombre: cliente, saltos } = await citaParaRegistrar(request);
 
     await page.goto('/admin');
-    // La cita está en el mismo día que la de los datos de ejemplo, que es el
-    // siguiente: por eso se avanza un día en vez de mirar la agenda de hoy.
-    await page.getByRole('button', { name: 'Siguiente' }).click();
+    // La cita se creó en el primer día próximo con hueco: se avanza el panel
+    // hasta ese día en vez de mirar la agenda de hoy.
+    for (let i = 0; i < saltos; i++) {
+      await page.getByRole('button', { name: 'Siguiente' }).click();
+    }
 
     const fila = page.getByRole('listitem').filter({ hasText: cliente });
     await fila.getByRole('button', { name: 'Registrar llegada' }).click();

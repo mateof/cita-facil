@@ -4,7 +4,7 @@
   <a href="https://github.com/mateof/cita-facil/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/mateof/cita-facil/ci.yml?branch=main&amp;label=CI&amp;logo=github"></a>
   <a href="package.json"><img alt="Node.js" src="https://img.shields.io/badge/Node.js-Fastify-339933?logo=nodedotjs&amp;logoColor=white"></a>
   <a href="package.json"><img alt="React" src="https://img.shields.io/badge/React-frontend-61DAFB?logo=react&amp;logoColor=black"></a>
-  <a href="docker-compose.yml"><img alt="Docker" src="https://img.shields.io/badge/docker-compose%20ready-2496ED?logo=docker&amp;logoColor=white"></a>
+  <a href="https://github.com/mateof/cita-facil/pkgs/container/cita-facil"><img alt="GHCR image" src="https://img.shields.io/badge/ghcr.io-image-2496ED?logo=docker&amp;logoColor=white"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-propietaria-lightgrey"></a>
   <a href="https://github.com/mateof/cita-facil/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/mateof/cita-facil"></a>
 </p>
