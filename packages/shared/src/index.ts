@@ -14,5 +14,6 @@ export * from './schemas/appointments.js';
 export * from './schemas/notifications.js';
 export * from './schemas/payments.js';
 export * from './schemas/credits.js';
+export * from './schemas/customers.js';
 export * from './schemas/pages.js';
 export * from './schemas/theme.js';

@@ -57,6 +57,7 @@ export interface Database {
   appointment_schedules: AppointmentSchedulesTable;
   schedule_occurrences: ScheduleOccurrencesTable;
   credit_ledger: CreditLedgerTable;
+  customer_profiles: CustomerProfilesTable;
 
   api_keys: ApiKeysTable;
   webhook_endpoints: WebhookEndpointsTable;
@@ -720,6 +721,20 @@ export interface CreditLedgerTable {
   created_by: string | null;
   note: string | null;
   created_at: string;
+}
+
+/**
+ * Lo que el mostrador anota sobre una persona. El resto de la ficha (citas,
+ * gasto, faltas, saldo) se calcula de las tablas de siempre.
+ */
+export interface CustomerProfilesTable {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  notes: string | null;
+  tags_json: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 /* ------------------------------------------------------------ Integraciones */

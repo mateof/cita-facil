@@ -30,6 +30,7 @@ import AdminNotifications from './pages/admin/Notifications.tsx';
 import Integrations from './pages/admin/Integrations.tsx';
 import Settings from './pages/admin/Settings.tsx';
 import Credits from './pages/admin/Credits.tsx';
+import Customers from './pages/admin/Customers.tsx';
 import System from './pages/admin/System.tsx';
 import Access from './pages/admin/Access.tsx';
 import Organizations from './pages/admin/Organizations.tsx';
@@ -177,6 +178,7 @@ export default function App() {
         <Route path="bonos" element={<Credits />} />
         <Route path="recursos" element={<Resources />} />
         <Route path="horarios" element={<Schedules />} />
+        <Route path="clientes" element={<Customers />} />
         <Route path="equipo" element={<Team />} />
         <Route path="informes" element={<Reports />} />
         <Route path="avisos" element={<AdminNotifications />} />

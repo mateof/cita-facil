@@ -67,6 +67,7 @@ const SECCIONES = [
   { ruta: '/admin/servicios', titulo: 'Servicios', contenido: 'Corte de pelo' },
   { ruta: '/admin/recursos', titulo: 'Recursos', contenido: 'Cabina de estética' },
   { ruta: '/admin/horarios', titulo: 'Horarios', contenido: 'Lunes' },
+  { ruta: '/admin/clientes', titulo: 'Clientes', contenido: 'Lucía Pena' },
   { ruta: '/admin/equipo', titulo: 'Equipo', contenido: 'Ana Ríos' },
   { ruta: '/admin/informes', titulo: 'Informes', contenido: 'TASA DE CANCELACIÓN' },
   { ruta: '/admin/avisos', titulo: 'Avisos', contenido: 'appointment.reminder' },
