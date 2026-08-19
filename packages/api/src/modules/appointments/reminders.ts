@@ -5,6 +5,7 @@ import { env } from '../../config/env.js';
 import { logger } from '../../lib/logger.js';
 import { formatForHumans, isoNow } from '../../lib/dates.js';
 import { cancelGroup, notify } from '../notifications/service.js';
+import { organizationSettings } from '../availability/engine.js';
 import type { AppointmentDetail } from './queries.js';
 
 /**
@@ -80,6 +81,19 @@ export async function scheduleReminders(appointment: AppointmentDetail): Promise
     serviceId: appointment.serviceId,
   });
 
+  /*
+   * Los enlaces de "voy" y "no puedo ir" solo se ofrecen si el negocio pide
+   * confirmación. Si no, el recordatorio no debe invitar a nada, así que la
+   * variable viaja vacía y la plantilla no enseña esa línea.
+   */
+  const settings = (await organizationSettings(appointment.organizationId)) as {
+    attendanceConfirmationEnabled?: boolean;
+  };
+  const { attendanceActionsText } = await import('./attendance.js');
+  const acciones = settings.attendanceConfirmationEnabled
+    ? attendanceActionsText(appointment, appointment.locale)
+    : '';
+
   const startsAt = Date.parse(appointment.startsAt);
   const now = Date.now();
   let scheduled = 0;
@@ -98,7 +112,7 @@ export async function scheduleReminders(appointment: AppointmentDetail): Promise
       to: { email: appointment.customerEmail, phone: appointment.customerPhone },
       scheduledAt: new Date(when).toISOString(),
       groupKey: reminderGroupKey(appointment.id),
-      vars: appointmentVars(appointment),
+      vars: appointmentVars(appointment, { acciones }),
     });
     scheduled += 1;
   }
@@ -142,6 +156,8 @@ export function appointmentVars(
           }).format(appointment.priceCents / 100)
         : '',
     codigo: appointment.accessCode,
+    // Solo el recordatorio la rellena; en el resto de avisos queda vacía.
+    acciones: '',
     enlace: `${env.APP_URL}/citas/${appointment.id}?c=${appointment.accessCode}`,
     ...extra,
   };

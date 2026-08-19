@@ -272,6 +272,10 @@ export interface Appointment {
   notes: string | null;
   internalNotes: string | null;
   accessCode: string;
+  /** Cuándo dijo el cliente que iba a venir, si el negocio lo pide. */
+  attendanceConfirmedAt: string | null;
+  /** Cargo anotado por faltar o por avisar fuera de plazo. */
+  noShowFeeCents: number;
   checkedInAt: string | null;
   cancelledAt: string | null;
   cancellationReason: string | null;
@@ -323,6 +327,8 @@ export interface AdminService {
   /** `null` = hereda el plazo de la organización. */
   minAdvanceMinutes: number | null;
   cancellationCutoffMinutes: number | null;
+  /** `null` = hereda el cargo por falta de la organización. */
+  noShowFeeCents: number | null;
   creditChargeMode: 'inherit' | 'booking' | 'completion';
 }
 

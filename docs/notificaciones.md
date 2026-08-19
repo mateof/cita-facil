@@ -64,6 +64,11 @@ dentro de media hora, no se le manda el aviso "de un día antes".
 Al cancelar o mover una cita, los recordatorios pendientes se anulan y, si
 procede, se reprograman.
 
+En el recordatorio hay una variable más, `{{acciones}}`: los enlaces de
+*Confirmo que voy* y *No puedo ir*. Llega vacía si la organización no pide
+confirmación de asistencia, de forma que el aviso no invita a nada que el
+negocio no haya activado. Ver [reglas de reserva](reglas-de-reserva.md).
+
 ## Eventos
 
 | Evento | Cuándo |
@@ -76,6 +81,7 @@ procede, se reprograman.
 | `appointment.receipt` | Resguardo de cita |
 | `appointment.followup` | Petición de valoración tras la visita |
 | `appointment.no_show` | Falta sin avisar |
+| `appointment.fee_charged` | Cargo por falta o por avisar fuera de plazo |
 | `appointment.approval_required` | Aviso al personal de una cita por aprobar |
 | `waitlist.slot_available` | Se ha liberado un hueco de la lista de espera |
 | `payment.succeeded` / `failed` / `refunded` | Cobros |

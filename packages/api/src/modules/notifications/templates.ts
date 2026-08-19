@@ -106,9 +106,9 @@ export const BUILTIN_TEMPLATES: Record<NotificationEvent, TemplateDefinition> = 
       'Reminder: {{servicio}} on {{fecha}} at {{hora}}',
     ),
     body: T(
-      'Hola {{usuario}}:\n\nTe recordamos tu cita en {{organizacion}}.\n\nServicio: {{servicio}}\nFecha: {{fechaHora}}\nSede: {{sede}}\nProfesional: {{profesional}}\n\nCódigo de acceso: {{codigo}}\n\nSi no puedes acudir, cancélala aquí: {{enlace}}',
-      'Ola {{usuario}}:\n\nLembrámosche a túa cita en {{organizacion}}.\n\nServizo: {{servicio}}\nData: {{fechaHora}}\nSede: {{sede}}\nProfesional: {{profesional}}\n\nCódigo de acceso: {{codigo}}\n\nSe non podes acudir, cancélaa aquí: {{enlace}}',
-      'Hi {{usuario}},\n\nA reminder of your appointment at {{organizacion}}.\n\nService: {{servicio}}\nDate: {{fechaHora}}\nLocation: {{sede}}\nStaff: {{profesional}}\n\nAccess code: {{codigo}}\n\nCan not make it? Cancel here: {{enlace}}',
+      'Hola {{usuario}}:\n\nTe recordamos tu cita en {{organizacion}}.\n\nServicio: {{servicio}}\nFecha: {{fechaHora}}\nSede: {{sede}}\nProfesional: {{profesional}}\n\nCódigo de acceso: {{codigo}}\n\nSi no puedes acudir, cancélala aquí: {{enlace}}\n{{acciones}}',
+      'Ola {{usuario}}:\n\nLembrámosche a túa cita en {{organizacion}}.\n\nServizo: {{servicio}}\nData: {{fechaHora}}\nSede: {{sede}}\nProfesional: {{profesional}}\n\nCódigo de acceso: {{codigo}}\n\nSe non podes acudir, cancélaa aquí: {{enlace}}\n{{acciones}}',
+      'Hi {{usuario}},\n\nA reminder of your appointment at {{organizacion}}.\n\nService: {{servicio}}\nDate: {{fechaHora}}\nLocation: {{sede}}\nStaff: {{profesional}}\n\nAccess code: {{codigo}}\n\nCan not make it? Cancel here: {{enlace}}\n{{acciones}}',
     ),
     short: T(
       'Recordatorio: {{servicio}} el {{fechaHora}} en {{sede}}',
@@ -150,6 +150,24 @@ export const BUILTIN_TEMPLATES: Record<NotificationEvent, TemplateDefinition> = 
       'Valora tu visita a {{organizacion}}: {{enlace}}',
       'Valora a túa visita a {{organizacion}}: {{enlace}}',
       'Rate your visit to {{organizacion}}: {{enlace}}',
+    ),
+  },
+
+  'appointment.fee_charged': {
+    subject: T(
+      'Cargo por tu cita del {{fecha}} en {{organizacion}}',
+      'Cargo pola túa cita do {{fecha}} en {{organizacion}}',
+      'Charge for your {{fecha}} appointment at {{organizacion}}',
+    ),
+    body: T(
+      'Hola {{usuario}}:\n\nTu cita de {{servicio}} del {{fechaHora}} en {{organizacion}} tiene un cargo de {{importe}} porque no se avisó a tiempo de que no ibas a poder acudir.\n\nEl hueco se quedó sin ocupar. Puedes abonarlo en tu próxima visita.',
+      'Ola {{usuario}}:\n\nA túa cita de {{servicio}} do {{fechaHora}} en {{organizacion}} ten un cargo de {{importe}} porque non se avisou a tempo de que non ías poder acudir.\n\nO oco quedou sen ocupar. Podes aboalo na túa próxima visita.',
+      'Hi {{usuario}},\n\nYour {{servicio}} appointment on {{fechaHora}} at {{organizacion}} has a {{importe}} charge because we were not told in time that you could not make it.\n\nThe slot went unused. You can settle it on your next visit.',
+    ),
+    short: T(
+      'Cargo de {{importe}} por la cita del {{fechaHora}}',
+      'Cargo de {{importe}} pola cita do {{fechaHora}}',
+      '{{importe}} charge for the {{fechaHora}} appointment',
     ),
   },
 

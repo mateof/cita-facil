@@ -334,6 +334,8 @@ export interface ServicesTable {
   currency: string;
   deposit_cents: number;
   payment_required: number;
+  /** `-1` hereda el cargo por falta de la organización. */
+  no_show_fee_cents: number;
   /** Solo se puede reservar con un bono activo que cubra este servicio. */
   requires_credit_pack: number;
 
@@ -468,6 +470,10 @@ export interface AppointmentsTable {
   /** Código del QR y del control de acceso físico. */
   access_code: string;
   access_uses: number;
+  /** Cuándo dijo el cliente que iba a venir, desde el enlace del recordatorio. */
+  attendance_confirmed_at: string | null;
+  /** Cargo aplicado por faltar o por avisar fuera de plazo. */
+  no_show_fee_cents: number;
   checked_in_at: string | null;
   completed_at: string | null;
 

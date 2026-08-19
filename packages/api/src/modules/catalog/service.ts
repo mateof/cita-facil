@@ -616,6 +616,8 @@ export interface ServiceView {
   currency: string;
   depositCents: number;
   paymentRequired: boolean;
+  /** `null` = hereda el cargo por falta de la organización. */
+  noShowFeeCents: number | null;
   requiresCreditPack: boolean;
   capacity: number;
   requiresApproval: boolean;
@@ -634,6 +636,9 @@ export interface ServiceView {
   active: boolean;
   resourceIds: string[];
 }
+
+/** Columnas del servicio donde `null` significa "lo que diga la organización". */
+const HEREDABLES = ['min_advance_minutes', 'cancellation_cutoff_minutes', 'no_show_fee_cents'];
 
 function mapService(row: any, resourceIds: string[] = []): ServiceView {
   return {
@@ -660,6 +665,7 @@ function mapService(row: any, resourceIds: string[] = []): ServiceView {
     currency: row.currency,
     depositCents: row.deposit_cents,
     paymentRequired: row.payment_required === 1,
+    noShowFeeCents: toNullable(row.no_show_fee_cents),
     requiresCreditPack: row.requires_credit_pack === 1,
     capacity: row.capacity,
     requiresApproval: row.requires_approval === 1,
@@ -713,6 +719,7 @@ export async function createService(
       currency: input.currency,
       deposit_cents: input.depositCents,
       payment_required: input.paymentRequired ? 1 : 0,
+      no_show_fee_cents: toStored(input.noShowFeeCents),
       requires_credit_pack: input.requiresCreditPack ? 1 : 0,
       credit_charge_mode: input.creditChargeMode ?? 'inherit',
       capacity: input.capacity,
@@ -867,6 +874,7 @@ export async function updateService(
     pricePerMinuteCents: 'price_per_minute_cents',
     currency: 'currency',
     depositCents: 'deposit_cents',
+    noShowFeeCents: 'no_show_fee_cents',
     capacity: 'capacity',
     minAdvanceMinutes: 'min_advance_minutes',
     maxAdvanceDays: 'max_advance_days',
@@ -880,12 +888,9 @@ export async function updateService(
   for (const [key, column] of Object.entries(map)) {
     const value = (patch as Record<string, unknown>)[key];
     if (value === undefined) continue;
-    // Los dos plazos heredables viajan como `null` y se guardan con el
-    // centinela; el resto pasa tal cual.
-    update[column] =
-      column === 'min_advance_minutes' || column === 'cancellation_cutoff_minutes'
-        ? toStored(value as number | null)
-        : value;
+    // Lo heredable viaja como `null` y se guarda con el centinela; el resto
+    // pasa tal cual.
+    update[column] = HEREDABLES.includes(column) ? toStored(value as number | null) : value;
   }
 
   const booleans: Record<string, string> = {

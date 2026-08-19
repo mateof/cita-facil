@@ -382,6 +382,8 @@ export async function createAppointment(
           custom_fields_json: input.customFields ? JSON.stringify(input.customFields) : null,
           access_code: shortCode(10),
           access_uses: 0,
+          attendance_confirmed_at: null,
+          no_show_fee_cents: 0,
           checked_in_at: null,
           completed_at: null,
           cancelled_at: null,
@@ -652,6 +654,8 @@ export async function holdSlot(
       custom_fields_json: null,
       access_code: shortCode(10),
       access_uses: 0,
+      attendance_confirmed_at: null,
+      no_show_fee_cents: 0,
       checked_in_at: null,
       completed_at: null,
       cancelled_at: null,
@@ -753,6 +757,17 @@ export async function changeStatus(
       .execute();
   }
 
+  /*
+   * Cargo por falta. La importación va aquí dentro porque el módulo de
+   * asistencia necesita cancelar citas y acabaría importando este fichero.
+   */
+  if (next === 'no_show') {
+    const { applyNoShowFee } = await import('./attendance.js');
+    await applyNoShowFee(appointment, 'no_show').catch((error) =>
+      logger.warn({ err: error, appointmentId }, 'No se pudo anotar el cargo por falta'),
+    );
+  }
+
   const updated = await requireAppointmentDetail(appointmentId);
 
   if (next === 'confirmed') {
@@ -806,7 +821,17 @@ export async function changeStatus(
 
 export async function cancelAppointment(
   appointmentId: string,
-  options: { reason?: string; notifyCustomer?: boolean; actor?: ActorContext } = {},
+  options: {
+    reason?: string;
+    notifyCustomer?: boolean;
+    actor?: ActorContext;
+    /**
+     * Cancela aunque el plazo haya pasado. Solo lo usa el enlace de "no puedo
+     * ir" del recordatorio: avisar tarde es mejor que no avisar, y lo que
+     * decide el plazo es si se cobra la falta, no si se admite el aviso.
+     */
+    ignoreCutoff?: boolean;
+  } = {},
 ): Promise<AppointmentDetail> {
   const appointment = await requireAppointmentDetail(appointmentId);
   const actor = options.actor ?? {};
@@ -815,7 +840,7 @@ export async function cancelAppointment(
     throw new ConflictError('La cita ya está cerrada', 'appointment_closed');
   }
 
-  if (!actor.isStaff) {
+  if (!actor.isStaff && !options.ignoreCutoff) {
     await assertWithinCutoff(appointment, 'cancellation_cutoff_minutes', 'cancellation_too_late');
   }
 

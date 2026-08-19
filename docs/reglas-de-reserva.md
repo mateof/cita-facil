@@ -66,6 +66,55 @@ Por dentro, "heredar" se guarda como `-1` y no como `NULL`, porque las columnas
 nacieron obligatorias y SQLite no permite cambiar eso sin recrear la tabla
 entera. La traducción ocurre en los bordes: el API y el panel hablan de `null`.
 
+## Confirmación de asistencia
+
+**Panel → Ajustes → Reservas → Pedir confirmación de asistencia.** Con el ajuste
+activo, el recordatorio lleva dos enlaces: *Confirmo que voy* y *No puedo ir*.
+Los dos funcionan sin cuenta, porque van con el código de acceso de la cita, que
+es el mismo que abre la puerta y que sirve para consultarla.
+
+- **Confirmar** no cambia el estado de la cita: una cita confirmada ya lo
+  estaba. Lo que hace es dejar anotado que la persona dijo que iba a venir, y el
+  panel lo enseña en la lista de citas. Es lo que ahorra la llamada de
+  comprobación de la mañana.
+- **Avisar** cancela la cita y libera el hueco, que se ofrece a la lista de
+  espera igual que cualquier otra cancelación.
+
+**Avisar se admite siempre, incluso fuera del plazo de cancelación.** Cerrar esa
+puerta solo consigue que la gente no avise, y una silla vacía sin aviso es peor
+para el negocio que una cancelación tardía: al menos con el aviso hay una
+oportunidad de recolocar el hueco. Lo que decide el plazo no es si se admite el
+aviso, sino si se cobra.
+
+El enlace del correo abre la pantalla de consulta con la cita ya cargada, pero
+**no responde solo**: hay que pulsar el botón. Un cliente de correo que precarga
+enlaces cancelaría citas sin que nadie hubiera hecho nada.
+
+## Cargo por falta
+
+Lo que el negocio anota a quien no aparece o avisa fuera de plazo.
+
+| Dónde | Qué significa |
+| --- | --- |
+| Ajustes de la organización | El cargo general del negocio. Cero, no se cobra nada. |
+| Formulario del servicio | En blanco hereda el de la organización; cero es no cobrar faltas en ese servicio aunque la organización sí. |
+
+Se aplica en dos momentos: al marcar la cita como falta (a mano o con el
+automatismo de `autoNoShowAfterMinutes`) y al recibir un aviso fuera de plazo.
+
+Dos casos en los que **no** se cobra:
+
+- **La cita ya estaba pagada.** La señal cobrada por adelantado es justamente lo
+  que cubre la falta; sumar un cargo encima cobraría dos veces el mismo hueco.
+- **La sesión salía de un bono.** Ahí ya rige la norma de los bonos: faltar
+  consume la sesión igual que venir. Ver [bonos](bonos.md).
+
+**El cargo se anota, no se cobra solo.** La aplicación no guarda tarjetas, así
+que no hay forma de cobrar sin nadie delante. Lo que queda es un importe
+pendiente en la cita, visible en el panel y en la [ficha del cliente](clientes.md),
+y un aviso a quien faltó. El cobro se hace en la siguiente visita o mandando un
+enlace de pago.
+
 ## Programaciones semanales
 
 **Panel → Programaciones.** Una programación dice "esta persona, este servicio,
@@ -107,6 +156,14 @@ Todos cuelgan de `/api/v1/organizations/:organizationId`.
 | `POST /recurring/:id/run` | `appointment:write` | Generar ahora lo que falte. |
 | `GET /credit-debts` | `credit:read` | Sesiones que se deben. |
 | `POST /appointments/:id/cancel-check` | cualquiera | Si todavía se puede cancelar y cuánto queda. |
+
+Y dos endpoints públicos, sin autenticación, que son los de los enlaces del
+recordatorio:
+
+| Método y ruta | Qué hace |
+| --- | --- |
+| `POST /public/appointments/confirm` | Confirma la asistencia a partir del código. |
+| `POST /public/appointments/decline` | Avisa de que no se puede ir. Cancela y, fuera de plazo, aplica el cargo. |
 
 Las programaciones cuelgan de `/recurring` y no de `/schedules` porque esa
 dirección ya la usan los horarios de apertura, que son otra cosa.

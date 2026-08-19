@@ -253,6 +253,18 @@ function OrganizationTab({ section }: { section: string }) {
               />
             </Field>
 
+            <Field label={t('admin.rules.noShowFee')} hint={t('admin.rules.noShowFeeHint')}>
+              <Input
+                type="number"
+                min={0}
+                step={0.01}
+                value={(draft.settings.noShowFeeCents ?? 0) / 100}
+                onChange={(event) =>
+                  setSetting('noShowFeeCents', Math.round(Number(event.target.value) * 100))
+                }
+              />
+            </Field>
+
             <Field label={t('admin.rules.minAdvance')} hint={t('admin.rules.minAdvanceHint')}>
               <CutoffSelect
                 value={draft.settings.minAdvanceMinutes ?? 0}
@@ -327,6 +339,12 @@ function OrganizationTab({ section }: { section: string }) {
               checked={draft.settings.reviewsEnabled !== false}
               onChange={(value) => setSetting('reviewsEnabled', value)}
               label={t('admin.settings.reviewsEnabled')}
+            />
+            <Switch
+              checked={draft.settings.attendanceConfirmationEnabled === true}
+              onChange={(value) => setSetting('attendanceConfirmationEnabled', value)}
+              label={t('admin.rules.attendanceConfirmation')}
+              hint={t('admin.rules.attendanceConfirmationHint')}
             />
           </div>
         </>

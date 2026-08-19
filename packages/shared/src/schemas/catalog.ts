@@ -63,6 +63,16 @@ export const organizationSettingsSchema = z
     accessSingleUse: z.boolean().default(false),
     /** Marca automáticamente como falta las citas no atendidas pasados N minutos. */
     autoNoShowAfterMinutes: z.number().int().min(0).max(1440).default(0),
+    /**
+     * El recordatorio lleva enlaces para confirmar la asistencia o avisar de
+     * que no se va a poder ir.
+     */
+    attendanceConfirmationEnabled: z.boolean().default(false),
+    /**
+     * Cargo por faltar sin avisar o por avisar fuera de plazo, para los
+     * servicios que no fijen el suyo. Cero, no se cobra nada.
+     */
+    noShowFeeCents: moneySchema.default(0),
 
     /**
      * Cuándo se descuenta la sesión del bono, para los servicios que no lo
@@ -182,6 +192,8 @@ export const createServiceSchema = z
     /** Importe a pagar por adelantado para confirmar. 0 = no se exige. */
     depositCents: moneySchema.default(0),
     paymentRequired: z.boolean().default(false),
+    /** `null` hereda el cargo por falta de la organización. Cero es no cobrar. */
+    noShowFeeCents: moneySchema.nullish(),
     /**
      * Solo se puede reservar con un bono activo que cubra este servicio. Es lo
      * habitual en gimnasios o cabinas: se compra la serie de sesiones y cada

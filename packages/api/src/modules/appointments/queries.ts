@@ -42,6 +42,10 @@ export interface AppointmentDetail {
   internalNotes: string | null;
   customFields: Record<string, unknown> | null;
   accessCode: string;
+  /** Cuándo dijo el cliente que iba a venir, si el negocio lo pide. */
+  attendanceConfirmedAt: string | null;
+  /** Cargo anotado por faltar o por avisar fuera de plazo. */
+  noShowFeeCents: number;
   checkedInAt: string | null;
   completedAt: string | null;
   cancelledAt: string | null;
@@ -82,6 +86,8 @@ const DETAIL_SELECTION = [
   'appointments.internal_notes',
   'appointments.custom_fields_json',
   'appointments.access_code',
+  'appointments.attendance_confirmed_at',
+  'appointments.no_show_fee_cents',
   'appointments.checked_in_at',
   'appointments.completed_at',
   'appointments.cancelled_at',
@@ -154,6 +160,8 @@ export function mapAppointment(row: Row): AppointmentDetail {
       ? (JSON.parse(row.custom_fields_json) as Record<string, unknown>)
       : null,
     accessCode: row.access_code,
+    attendanceConfirmedAt: row.attendance_confirmed_at,
+    noShowFeeCents: row.no_show_fee_cents,
     checkedInAt: row.checked_in_at,
     completedAt: row.completed_at,
     cancelledAt: row.cancelled_at,

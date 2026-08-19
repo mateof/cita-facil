@@ -22,7 +22,15 @@ import {
 } from '../modules/catalog/service.js';
 import { publishedPage, publishedPages } from '../modules/catalog/pages.js';
 import { activeTheme } from '../modules/themes/service.js';
-import { findByAccessCode } from '../modules/appointments/queries.js';
+import {
+  findByAccessCode,
+  type AppointmentDetail,
+} from '../modules/appointments/queries.js';
+import {
+  confirmAttendance,
+  declineAttendance,
+} from '../modules/appointments/attendance.js';
+import { organizationSettings } from '../modules/availability/engine.js';
 import { getAuthSettings } from '../modules/settings/access-policy.js';
 
 /**
@@ -344,26 +352,101 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       const appointment = await findByAccessCode(request.query.code);
       if (!appointment) throw new NotFoundError('No hay ninguna cita con ese código');
 
+      return publicView(appointment, await asksForConfirmation(appointment.organizationId));
+    },
+  );
+
+  /*
+   * Confirmar o rechazar la asistencia desde el enlace del recordatorio.
+   *
+   * Se identifica con el código de acceso, que es lo único que tiene quien
+   * reservó sin cuenta. Es el mismo código que abre la puerta y que consulta la
+   * cita, así que no añade ninguna vía nueva de acceso a los datos.
+   */
+  app.post(
+    '/appointments/confirm',
+    {
+      config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+      schema: {
+        tags: ['publico'],
+        summary: 'Confirmar que se va a acudir a la cita',
+        body: z.object({ code: z.string().min(4).max(120) }),
+      },
+    },
+    async (request) => {
+      const appointment = await confirmAttendance(request.body.code, {
+        ip: request.ip,
+        userAgent: request.headers['user-agent'] ?? null,
+      });
+      return publicView(appointment, await asksForConfirmation(appointment.organizationId));
+    },
+  );
+
+  app.post(
+    '/appointments/decline',
+    {
+      config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+      schema: {
+        tags: ['publico'],
+        summary: 'Avisar de que no se va a poder acudir',
+        description:
+          'Cancela la cita aunque el plazo haya pasado. Fuera de plazo se aplica el cargo por falta, si el negocio tiene uno.',
+        body: z.object({ code: z.string().min(4).max(120), reason: z.string().max(500).optional() }),
+      },
+    },
+    async (request) => {
+      const { appointment, late, feeCents } = await declineAttendance(request.body.code, {
+        reason: request.body.reason,
+        ip: request.ip,
+        userAgent: request.headers['user-agent'] ?? null,
+      });
       return {
-        id: appointment.id,
-        startsAt: appointment.startsAt,
-        endsAt: appointment.endsAt,
-        timezone: appointment.timezone,
-        status: appointment.status,
-        serviceName: appointment.serviceName,
-        organizationName: appointment.organizationName,
-        locationName: appointment.locationName,
-        locationAddress: appointment.locationAddress,
-        resourceName: appointment.resourceName,
-        customerName: appointment.customerName,
-        partySize: appointment.partySize,
-        priceCents: appointment.priceCents,
-        currency: appointment.currency,
-        paymentStatus: appointment.paymentStatus,
-        accessCode: appointment.accessCode,
+        ...publicView(appointment, await asksForConfirmation(appointment.organizationId)),
+        late,
+        feeCents,
       };
     },
   );
 };
+
+/** ¿Esta organización pide confirmar la asistencia? */
+async function asksForConfirmation(organizationId: string): Promise<boolean> {
+  const settings = (await organizationSettings(organizationId)) as {
+    attendanceConfirmationEnabled?: boolean;
+  };
+  return settings.attendanceConfirmationEnabled === true;
+}
+
+/**
+ * Lo que se enseña de una cita a quien llega con el código: lo justo para
+ * reconocerla y gestionarla, sin datos de la cuenta ni notas internas.
+ */
+function publicView(appointment: AppointmentDetail, asksConfirmation: boolean) {
+  return {
+    id: appointment.id,
+    startsAt: appointment.startsAt,
+    endsAt: appointment.endsAt,
+    timezone: appointment.timezone,
+    status: appointment.status,
+    serviceName: appointment.serviceName,
+    organizationName: appointment.organizationName,
+    locationName: appointment.locationName,
+    locationAddress: appointment.locationAddress,
+    resourceName: appointment.resourceName,
+    customerName: appointment.customerName,
+    partySize: appointment.partySize,
+    priceCents: appointment.priceCents,
+    currency: appointment.currency,
+    paymentStatus: appointment.paymentStatus,
+    accessCode: appointment.accessCode,
+    attendanceConfirmedAt: appointment.attendanceConfirmedAt,
+    noShowFeeCents: appointment.noShowFeeCents,
+    /** El negocio pide confirmación y la cita todavía admite respuesta. */
+    canRespond:
+      asksConfirmation &&
+      ['pending', 'confirmed'].includes(appointment.status) &&
+      Date.parse(appointment.startsAt) > Date.now(),
+  };
+}
 
 export default publicRoutes;

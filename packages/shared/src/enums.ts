@@ -154,6 +154,7 @@ export const NOTIFICATION_EVENTS = [
   'appointment.receipt', // resguardo de cita
   'appointment.followup', // encuesta / valoración posterior
   'appointment.no_show',
+  'appointment.fee_charged', // cargo por falta o por avisar fuera de plazo
   'appointment.approval_required',
   'waitlist.slot_available',
   'payment.succeeded',

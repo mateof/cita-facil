@@ -385,6 +385,25 @@ function ServiceForm({
               onChange={(event) => set({ depositCents: Number(event.target.value) })}
             />
           </Field>
+
+          {/* Vacío hereda el cargo de la organización; cero es no cobrar faltas. */}
+          <Field
+            label={`${t('admin.rules.noShowFee')} (céntimos)`}
+            hint={t('admin.rules.noShowFeeServiceHint')}
+            className="mb-0"
+          >
+            <Input
+              type="number"
+              min={0}
+              placeholder={t('admin.rules.inherit')}
+              value={draft.noShowFeeCents ?? ''}
+              onChange={(event) =>
+                set({
+                  noShowFeeCents: event.target.value === '' ? null : Number(event.target.value),
+                })
+              }
+            />
+          </Field>
         </div>
 
         <div className="divide-y divide-slate-100">

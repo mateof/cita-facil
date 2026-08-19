@@ -143,6 +143,20 @@ export default function Appointments() {
               </span>
             )}
 
+            {appointment.attendanceConfirmedAt && (
+              <Badge className="bg-emerald-100 text-emerald-800">
+                {t('appointments.attendanceConfirmedShort')}
+              </Badge>
+            )}
+
+            {appointment.noShowFeeCents > 0 && (
+              <Badge className="bg-amber-100 text-amber-800">
+                {t('appointments.feeShort', {
+                  amount: formatMoney(appointment.noShowFeeCents, appointment.currency, locale),
+                })}
+              </Badge>
+            )}
+
             <Badge className={statusClass(appointment.status)}>
               {t(`appointments.status.${appointment.status}`)}
             </Badge>
