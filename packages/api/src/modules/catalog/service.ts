@@ -463,6 +463,8 @@ export interface ResourceView {
   imageUrl: string | null;
   icon: string | null;
   bookableDirectly: boolean;
+  /** Comisión del profesional en porcentaje. Se guarda en puntos básicos. */
+  commissionPercent: number;
   sortOrder: number;
   active: boolean;
 }
@@ -481,6 +483,7 @@ function mapResource(row: any): ResourceView {
     imageUrl: row.image_url,
     icon: row.icon,
     bookableDirectly: row.bookable_directly === 1,
+    commissionPercent: (row.commission_bp ?? 0) / 100,
     sortOrder: row.sort_order,
     active: row.active === 1,
   };
@@ -512,6 +515,7 @@ export async function createResource(
       image_url: input.imageUrl ?? null,
       icon: input.icon ?? null,
       bookable_directly: input.bookableDirectly === false ? 0 : 1,
+      commission_bp: Math.round((input.commissionPercent ?? 0) * 100),
       sort_order: input.sortOrder,
       active: input.active === false ? 0 : 1,
       created_at: now,
@@ -568,6 +572,9 @@ export async function updateResource(
   if (patch.imageUrl !== undefined) update.image_url = patch.imageUrl;
   if (patch.icon !== undefined) update.icon = patch.icon;
   if (patch.bookableDirectly !== undefined) update.bookable_directly = patch.bookableDirectly ? 1 : 0;
+  if (patch.commissionPercent !== undefined) {
+    update.commission_bp = Math.round(patch.commissionPercent * 100);
+  }
   if (patch.sortOrder !== undefined) update.sort_order = patch.sortOrder;
   if (patch.active !== undefined) update.active = patch.active ? 1 : 0;
   if (patch.userId !== undefined) update.user_id = patch.userId;

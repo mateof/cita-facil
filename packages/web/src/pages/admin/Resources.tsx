@@ -204,6 +204,24 @@ export default function Resources() {
             </Field>
 
             {draft.type === 'staff' && (
+              <Field
+                label={t('admin.resources.commission')}
+                hint={t('admin.resources.commissionHint')}
+              >
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  value={draft.commissionPercent ?? 0}
+                  onChange={(event) =>
+                    setDraft({ ...draft, commissionPercent: Number(event.target.value) })
+                  }
+                />
+              </Field>
+            )}
+
+            {draft.type === 'staff' && (
               <Field label={t('admin.resources.linkedUser')}>
                 <Combobox
                   value={draft.userId ?? null}

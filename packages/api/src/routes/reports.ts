@@ -3,9 +3,20 @@ import { z } from 'zod';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { isoDateSchema } from '@cita-facil/shared';
 import { db } from '../db/index.js';
-import { addDays, localToInstant, todayIn } from '../lib/dates.js';
+import { localToInstant, todayIn } from '../lib/dates.js';
 import { getOrganization } from '../modules/catalog/service.js';
 import { NotFoundError } from '../lib/errors.js';
+import {
+  EXPORT_TYPES,
+  daily,
+  exportReport,
+  hours,
+  resolveRange,
+  resources,
+  services,
+  staff,
+  summary,
+} from '../modules/reports/service.js';
 import { organizationParams, orgId } from './helpers.js';
 
 /**
@@ -25,82 +36,20 @@ const reportRoutes: FastifyPluginAsync = async (fastify) => {
     locationId: z.string().optional(),
   });
 
-  /** Rango por defecto: los últimos 30 días. */
-  async function resolveRange(organizationId: string, query: z.infer<typeof rangeQuery>) {
-    const organization = await getOrganization(organizationId);
-    if (!organization) throw new NotFoundError('La organización no existe');
-    const today = todayIn(organization.timezone);
-    return {
-      from: query.from ?? addDays(today, -29),
-      to: query.to ?? today,
-      timezone: organization.timezone,
-      currency: organization.currency,
-    };
-  }
-
   app.get(
     '/reports/summary',
     {
       schema: {
         tags: ['informes'],
         summary: 'Resumen general',
+        description: 'Incluye el mismo número de días inmediatamente anterior, para comparar.',
         params: organizationParams,
         querystring: rangeQuery,
       },
     },
     async (request) => {
       request.requirePermission(orgId(request), 'report:read');
-      const range = await resolveRange(orgId(request), request.query);
-
-      let base = db()
-        .selectFrom('appointments')
-        .where('organization_id', '=', orgId(request))
-        .where('local_date', '>=', range.from)
-        .where('local_date', '<=', range.to)
-        .where('status', '!=', 'hold');
-      if (request.query.locationId) {
-        base = base.where('location_id', '=', request.query.locationId);
-      }
-
-      const rows = await base
-        .select(['status', 'price_cents', 'payment_status', 'duration_minutes', 'source'])
-        .execute();
-
-      const total = rows.length;
-      const byStatus = countBy(rows, (row) => row.status);
-      const bySource = countBy(rows, (row) => row.source);
-
-      const completed = rows.filter((row) => row.status === 'completed');
-      const cancelled = rows.filter((row) => row.status === 'cancelled').length;
-      const noShows = rows.filter((row) => row.status === 'no_show').length;
-
-      const revenueCents = rows
-        .filter((row) => row.payment_status === 'paid')
-        .reduce((sum, row) => sum + row.price_cents, 0);
-
-      const expectedRevenueCents = rows
-        .filter((row) => ['confirmed', 'completed', 'checked_in', 'in_progress'].includes(row.status))
-        .reduce((sum, row) => sum + row.price_cents, 0);
-
-      return {
-        range: { from: range.from, to: range.to },
-        currency: range.currency,
-        total,
-        completed: completed.length,
-        cancelled,
-        noShows,
-        // Tasas expresadas en tanto por ciento con un decimal.
-        cancellationRate: total > 0 ? round1((cancelled / total) * 100) : 0,
-        noShowRate: total > 0 ? round1((noShows / total) * 100) : 0,
-        revenueCents,
-        expectedRevenueCents,
-        averageTicketCents: completed.length > 0 ? Math.round(revenueCents / completed.length) : 0,
-        bookedMinutes: rows
-          .filter((row) => !['cancelled', 'rejected', 'expired'].includes(row.status))
-          .reduce((sum, row) => sum + row.duration_minutes, 0),
-        byStatus,
-        bySource,
-      };
+      return summary(orgId(request), await resolveRange(orgId(request), request.query));
     },
   );
 
@@ -116,43 +65,7 @@ const reportRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request) => {
       request.requirePermission(orgId(request), 'report:read');
-      const range = await resolveRange(orgId(request), request.query);
-
-      let query = db()
-        .selectFrom('appointments')
-        .select((eb) => [
-          'local_date',
-          eb.fn.countAll<number>().as('total'),
-          eb.fn.sum<number>('price_cents').as('revenue_cents'),
-          eb.fn.sum<number>('duration_minutes').as('minutes'),
-        ])
-        .where('organization_id', '=', orgId(request))
-        .where('local_date', '>=', range.from)
-        .where('local_date', '<=', range.to)
-        .where('status', 'in', ['confirmed', 'checked_in', 'in_progress', 'completed'])
-        .groupBy('local_date')
-        .orderBy('local_date');
-
-      if (request.query.locationId) {
-        query = query.where('location_id', '=', request.query.locationId);
-      }
-
-      const rows = await query.execute();
-      const byDate = new Map(rows.map((row) => [row.local_date, row]));
-
-      // Se rellenan los días sin citas para que la gráfica no tenga huecos.
-      const series = [];
-      for (let date = range.from; date <= range.to; date = addDays(date, 1)) {
-        const row = byDate.get(date);
-        series.push({
-          date,
-          total: Number(row?.total ?? 0),
-          revenueCents: Number(row?.revenue_cents ?? 0),
-          minutes: Number(row?.minutes ?? 0),
-        });
-      }
-
-      return { series, currency: range.currency };
+      return daily(orgId(request), await resolveRange(orgId(request), request.query));
     },
   );
 
@@ -168,32 +81,7 @@ const reportRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request) => {
       request.requirePermission(orgId(request), 'report:read');
-      const range = await resolveRange(orgId(request), request.query);
-
-      const rows = await db()
-        .selectFrom('appointments')
-        .innerJoin('services', 'services.id', 'appointments.service_id')
-        .select((eb) => [
-          'services.id',
-          'services.name',
-          eb.fn.countAll<number>().as('total'),
-          eb.fn.sum<number>('appointments.price_cents').as('revenue_cents'),
-        ])
-        .where('appointments.organization_id', '=', orgId(request))
-        .where('appointments.local_date', '>=', range.from)
-        .where('appointments.local_date', '<=', range.to)
-        .where('appointments.status', 'in', ['confirmed', 'checked_in', 'completed'])
-        .groupBy(['services.id', 'services.name'])
-        .orderBy('total', 'desc')
-        .limit(50)
-        .execute();
-
-      return rows.map((row) => ({
-        serviceId: row.id,
-        name: row.name,
-        total: Number(row.total),
-        revenueCents: Number(row.revenue_cents ?? 0),
-      }));
+      return services(orgId(request), await resolveRange(orgId(request), request.query));
     },
   );
 
@@ -211,77 +99,7 @@ const reportRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request) => {
       request.requirePermission(orgId(request), 'report:read');
-      const range = await resolveRange(orgId(request), request.query);
-
-      const booked = await db()
-        .selectFrom('appointments')
-        .innerJoin('resources', 'resources.id', 'appointments.resource_id')
-        .select((eb) => [
-          'resources.id',
-          'resources.name',
-          eb.fn.countAll<number>().as('total'),
-          eb.fn.sum<number>('appointments.duration_minutes').as('minutes'),
-          eb.fn.sum<number>('appointments.price_cents').as('revenue_cents'),
-        ])
-        .where('appointments.organization_id', '=', orgId(request))
-        .where('appointments.local_date', '>=', range.from)
-        .where('appointments.local_date', '<=', range.to)
-        .where('appointments.status', 'in', ['confirmed', 'checked_in', 'in_progress', 'completed'])
-        .groupBy(['resources.id', 'resources.name'])
-        .execute();
-
-      // Minutos de apertura: se suman las reglas de horario de cada recurso (o
-      // de su sede si no tiene propio) por cada día del rango.
-      const schedules = await db()
-        .selectFrom('schedules')
-        .select(['owner_type', 'owner_id', 'weekday', 'start_minute', 'end_minute'])
-        .where('organization_id', '=', orgId(request))
-        .execute();
-
-      const resources = await db()
-        .selectFrom('resources')
-        .select(['id', 'name', 'location_id'])
-        .where('organization_id', '=', orgId(request))
-        .where('active', '=', 1)
-        .where('deleted_at', 'is', null)
-        .execute();
-
-      const days: number[] = [];
-      for (let date = range.from; date <= range.to; date = addDays(date, 1)) {
-        days.push(new Date(`${date}T00:00:00.000Z`).getUTCDay() || 7);
-      }
-
-      return resources.map((resource) => {
-        const own = schedules.filter(
-          (rule) => rule.owner_type === 'resource' && rule.owner_id === resource.id,
-        );
-        const inherited = schedules.filter(
-          (rule) => rule.owner_type === 'location' && rule.owner_id === resource.location_id,
-        );
-        const rules = own.length > 0 ? own : inherited;
-
-        const availableMinutes = days.reduce(
-          (sum, weekday) =>
-            sum +
-            rules
-              .filter((rule) => rule.weekday === weekday)
-              .reduce((total, rule) => total + (rule.end_minute - rule.start_minute), 0),
-          0,
-        );
-
-        const stats = booked.find((row) => row.id === resource.id);
-        const bookedMinutes = Number(stats?.minutes ?? 0);
-
-        return {
-          resourceId: resource.id,
-          name: resource.name,
-          appointments: Number(stats?.total ?? 0),
-          bookedMinutes,
-          availableMinutes,
-          occupancyRate: availableMinutes > 0 ? round1((bookedMinutes / availableMinutes) * 100) : 0,
-          revenueCents: Number(stats?.revenue_cents ?? 0),
-        };
-      });
+      return resources(orgId(request), await resolveRange(orgId(request), request.query));
     },
   );
 
@@ -297,23 +115,52 @@ const reportRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request) => {
       request.requirePermission(orgId(request), 'report:read');
+      return hours(orgId(request), await resolveRange(orgId(request), request.query));
+    },
+  );
+
+  app.get(
+    '/reports/staff',
+    {
+      schema: {
+        tags: ['informes'],
+        summary: 'Reparto por profesional y comisiones',
+        description:
+          'Lo que factura cada agenda y lo que le corresponde de comisión, calculada sobre lo cobrado.',
+        params: organizationParams,
+        querystring: rangeQuery,
+      },
+    },
+    async (request) => {
+      request.requirePermission(orgId(request), 'report:read');
+      return staff(orgId(request), await resolveRange(orgId(request), request.query));
+    },
+  );
+
+  app.get(
+    '/reports/export',
+    {
+      schema: {
+        tags: ['informes'],
+        summary: 'Descargar un informe en CSV',
+        description:
+          'Separador punto y coma y decimales con coma, que es lo que espera Excel en español.',
+        params: organizationParams,
+        querystring: rangeQuery.extend({ type: z.enum(EXPORT_TYPES) }),
+      },
+    },
+    async (request, reply) => {
+      request.requirePermission(orgId(request), 'report:read');
       const range = await resolveRange(orgId(request), request.query);
+      const csv = await exportReport(orgId(request), request.query.type, range);
 
-      const rows = await db()
-        .selectFrom('appointments')
-        .select(['local_start_minute'])
-        .where('organization_id', '=', orgId(request))
-        .where('local_date', '>=', range.from)
-        .where('local_date', '<=', range.to)
-        .where('status', 'in', ['confirmed', 'checked_in', 'completed'])
-        .execute();
-
-      const buckets = Array.from({ length: 24 }, (_, hour) => ({ hour, total: 0 }));
-      for (const row of rows) {
-        const hour = Math.floor(row.local_start_minute / 60);
-        if (buckets[hour]) buckets[hour].total += 1;
-      }
-      return buckets;
+      return reply
+        .header('content-type', 'text/csv; charset=utf-8')
+        .header(
+          'content-disposition',
+          `attachment; filename="${request.query.type}-${range.from}-${range.to}.csv"`,
+        )
+        .send(csv);
     },
   );
 
@@ -405,18 +252,5 @@ const reportRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 };
-
-function countBy<T>(items: T[], key: (item: T) => string): Record<string, number> {
-  const result: Record<string, number> = {};
-  for (const item of items) {
-    const value = key(item);
-    result[value] = (result[value] ?? 0) + 1;
-  }
-  return result;
-}
-
-function round1(value: number): number {
-  return Math.round(value * 10) / 10;
-}
 
 export default reportRoutes;

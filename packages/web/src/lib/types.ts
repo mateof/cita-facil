@@ -343,6 +343,8 @@ export interface AdminResource {
   userId: string | null;
   name: string;
   type: string;
+  /** Comisión del profesional sobre lo que cobra su agenda, en porcentaje. */
+  commissionPercent: number;
   capacity: number;
   color: string | null;
   imageUrl: string | null;

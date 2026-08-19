@@ -159,6 +159,11 @@ export const createResourceSchema = z.object({
   userId: idSchema.nullable().optional(),
   /** Se puede reservar directamente eligiéndolo. */
   bookableDirectly: z.boolean().default(true),
+  /**
+   * Comisión del profesional sobre lo que factura su agenda, en porcentaje.
+   * Admite decimales: el 12,5 % es un reparto normal.
+   */
+  commissionPercent: z.number().min(0).max(100).default(0),
   sortOrder: z.number().int().min(0).max(10_000).default(0),
   active: z.boolean().default(true),
 }).merge(avatarFieldsSchema);

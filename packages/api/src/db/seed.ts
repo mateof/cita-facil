@@ -310,6 +310,8 @@ export async function seedDemoData(db: Kysely<Database>): Promise<void> {
         color: '#2563eb',
         image_url: null,
         bookable_directly: 1,
+        // Un 20 % de comisión para que el informe de reparto enseñe algo.
+        commission_bp: 2000,
         sort_order: 0,
         active: 1,
         created_at: now,
@@ -328,6 +330,7 @@ export async function seedDemoData(db: Kysely<Database>): Promise<void> {
         color: '#059669',
         image_url: null,
         bookable_directly: 1,
+        commission_bp: 0,
         sort_order: 1,
         active: 1,
         created_at: now,

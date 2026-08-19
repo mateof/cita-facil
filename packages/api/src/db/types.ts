@@ -385,6 +385,8 @@ export interface ResourcesTable {
   bookable_directly: number;
   sort_order: number;
   active: number;
+  /** Comisión del profesional en puntos básicos: 1000 = 10 %. */
+  commission_bp: number;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

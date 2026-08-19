@@ -10,6 +10,7 @@ import * as m008 from './008_themes.js';
 import * as m009 from './009_booking_rules.js';
 import * as m010 from './010_customers.js';
 import * as m011 from './011_attendance.js';
+import * as m012 from './012_commissions.js';
 
 /**
  * Las migraciones se registran en un objeto estático en lugar de leerse del
@@ -29,6 +30,7 @@ export const migrations: Record<string, Migration> = {
   '009_booking_rules': m009,
   '010_customers': m010,
   '011_attendance': m011,
+  '012_commissions': m012,
 };
 
 export class StaticMigrationProvider implements MigrationProvider {
