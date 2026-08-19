@@ -83,6 +83,7 @@ negocio no haya activado. Ver [reglas de reserva](reglas-de-reserva.md).
 | `appointment.no_show` | Falta sin avisar |
 | `appointment.fee_charged` | Cargo por falta o por avisar fuera de plazo |
 | `appointment.approval_required` | Aviso al personal de una cita por aprobar |
+| `queue.called` | Le toca a quien esperaba sin cita |
 | `waitlist.slot_available` | Se ha liberado un hueco de la lista de espera |
 | `payment.succeeded` / `failed` / `refunded` | Cobros |
 | `auth.verify_email`, `auth.reset_password`, `auth.mfa_code`, `auth.new_device` | Seguridad |

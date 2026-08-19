@@ -58,6 +58,7 @@ export interface Database {
   schedule_occurrences: ScheduleOccurrencesTable;
   credit_ledger: CreditLedgerTable;
   customer_profiles: CustomerProfilesTable;
+  queue_entries: QueueEntriesTable;
 
   api_keys: ApiKeysTable;
   webhook_endpoints: WebhookEndpointsTable;
@@ -741,6 +742,35 @@ export interface CustomerProfilesTable {
   user_id: string;
   notes: string | null;
   tags_json: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Turno de la cola sin cita previa. No es una cita: no ocupa hueco ni bloquea
+ * disponibilidad hasta que alguien lo atiende.
+ */
+export interface QueueEntriesTable {
+  id: string;
+  organization_id: string;
+  location_id: string;
+  service_id: string | null;
+  resource_id: string | null;
+  customer_id: string | null;
+  guest_name: string | null;
+  guest_phone: string | null;
+  /** Número visible en la pantalla de sala; se reinicia cada día. */
+  ticket_number: number;
+  local_date: string;
+  party_size: number;
+  /** `waiting`, `called`, `serving`, `done`, `left`. */
+  status: string;
+  note: string | null;
+  source: string;
+  called_at: string | null;
+  served_at: string | null;
+  closed_at: string | null;
+  appointment_id: string | null;
   created_at: string;
   updated_at: string;
 }

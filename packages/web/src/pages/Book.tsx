@@ -38,6 +38,7 @@ import type {
 } from '../lib/types.ts';
 import { OrganizationFooter } from '../components/OrganizationFooter.tsx';
 import { OrganizationReviews, RatingChip } from '../components/reviews.tsx';
+import { WalkInQueue } from '../components/walk-in.tsx';
 import {
   Button,
   Card,
@@ -252,6 +253,12 @@ export default function Book() {
       )}
 
       {step === 'done' && created && <DoneStep appointment={created} locale={locale} />}
+
+      {/* Coger turno es una alternativa a reservar, no un paso de la reserva:
+          solo tiene sentido mientras se está eligiendo qué se quiere. */}
+      {step === 'service' && data?.organization.walkInPublicJoin && (
+        <WalkInQueue organizationId={data.organization.id} />
+      )}
 
       {/* Lo mismo que el pie: las opiniones ayudan a decidir antes de empezar,
           pero estorban cuando ya se está eligiendo la hora. */}

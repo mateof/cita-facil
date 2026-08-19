@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import {
   CalendarSync,
   Contact,
+  TicketCheck,
   Palette,
   BarChart3,
   CalendarDays,
@@ -240,6 +241,7 @@ export function AdminLayout() {
     { to: '/admin/horarios', label: t('nav.schedules'), icon: CalendarRange, visible: can('schedule:read') },
     { to: '/admin/programaciones', label: t('nav.recurring'), icon: CalendarSync, visible: can('appointment:read') },
     { to: '/admin/clientes', label: t('nav.customers'), icon: Contact, visible: can('customer:read') },
+    { to: '/admin/turnos', label: t('nav.queue'), icon: TicketCheck, visible: can('appointment:write') },
     { to: '/admin/equipo', label: t('nav.team'), icon: Users, visible: can('member:read') },
     { to: '/admin/informes', label: t('nav.reports'), icon: BarChart3, visible: can('report:read') },
     { to: '/admin/avisos', label: t('nav.notifications'), icon: Bell, visible: can('notification:read') },

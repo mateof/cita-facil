@@ -16,4 +16,5 @@ export * from './schemas/payments.js';
 export * from './schemas/credits.js';
 export * from './schemas/customers.js';
 export * from './schemas/pages.js';
+export * from './schemas/queue.js';
 export * from './schemas/theme.js';

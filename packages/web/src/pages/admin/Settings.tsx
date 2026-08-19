@@ -341,6 +341,19 @@ function OrganizationTab({ section }: { section: string }) {
               label={t('admin.settings.reviewsEnabled')}
             />
             <Switch
+              checked={draft.settings.walkInQueueEnabled === true}
+              onChange={(value) => setSetting('walkInQueueEnabled', value)}
+              label={t('admin.settings.walkInQueue')}
+              hint={t('admin.settings.walkInQueueHint')}
+            />
+            {draft.settings.walkInQueueEnabled === true && (
+              <Switch
+                checked={draft.settings.walkInPublicJoin === true}
+                onChange={(value) => setSetting('walkInPublicJoin', value)}
+                label={t('admin.settings.walkInPublicJoin')}
+              />
+            )}
+            <Switch
               checked={draft.settings.publicReviewsEnabled === true}
               onChange={(value) => setSetting('publicReviewsEnabled', value)}
               label={t('reviews.publicSetting')}

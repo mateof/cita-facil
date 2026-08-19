@@ -157,6 +157,7 @@ export const NOTIFICATION_EVENTS = [
   'appointment.fee_charged', // cargo por falta o por avisar fuera de plazo
   'appointment.approval_required',
   'waitlist.slot_available',
+  'queue.called', // le toca a quien esperaba sin cita
   'payment.succeeded',
   'payment.failed',
   'payment.refunded',

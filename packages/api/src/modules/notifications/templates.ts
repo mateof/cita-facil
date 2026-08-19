@@ -207,6 +207,24 @@ export const BUILTIN_TEMPLATES: Record<NotificationEvent, TemplateDefinition> = 
     ),
   },
 
+  'queue.called': {
+    subject: T(
+      'Te toca: turno {{turno}} en {{organizacion}}',
+      'Tócache: quenda {{turno}} en {{organizacion}}',
+      'You are up: ticket {{turno}} at {{organizacion}}',
+    ),
+    body: T(
+      'Hola {{usuario}}:\n\nTe toca. Tu turno, el {{turno}}, está siendo llamado en {{organizacion}}.\n\nAcércate al mostrador.',
+      'Ola {{usuario}}:\n\nTócache. A túa quenda, a {{turno}}, está sendo chamada en {{organizacion}}.\n\nAchégate ao mostrador.',
+      'Hi {{usuario}},\n\nYou are up. Ticket {{turno}} is being called at {{organizacion}}.\n\nPlease come to the desk.',
+    ),
+    short: T(
+      'Turno {{turno}}: te toca en {{organizacion}}',
+      'Quenda {{turno}}: tócache en {{organizacion}}',
+      'Ticket {{turno}}: you are up at {{organizacion}}',
+    ),
+  },
+
   'waitlist.slot_available': {
     subject: T(
       'Se ha liberado un hueco para {{servicio}}',

@@ -6,6 +6,7 @@ import {
   PAGE_KEYS,
   availabilityQuerySchema,
   isoDateSchema,
+  joinQueueSchema,
   pickI18n,
   publicPageSchema,
 } from '@cita-facil/shared';
@@ -23,6 +24,12 @@ import {
 import { publishedPage, publishedPages } from '../modules/catalog/pages.js';
 import { activeTheme } from '../modules/themes/service.js';
 import { publicReviews, ratingsByService } from '../modules/appointments/reviews.js';
+import {
+  displayBoard,
+  joinQueue,
+  queueSettings,
+  ticketStatus,
+} from '../modules/appointments/queue.js';
 import {
   findByAccessCode,
   type AppointmentDetail,
@@ -148,7 +155,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const locale = request.query.locale ?? request.locale;
-      const [locations, services, categories, pages, tema, notas] = await Promise.all([
+      const [locations, services, categories, pages, tema, notas, cola] = await Promise.all([
         listLocations(organization.id, { onlyActive: true }),
         listServices(organization.id, { onlyActive: true, onlyPublic: true }),
         listCategories(organization.id),
@@ -157,6 +164,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
         // Vacío si el negocio no publica valoraciones, así que la página no
         // enseña notas que nadie ha decidido enseñar.
         ratingsByService(organization.id),
+        queueSettings(organization.id),
       ]);
 
       // La reserva sin cuenta necesita el visto bueno de la instalación y el de
@@ -189,6 +197,8 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           allowGuestBooking,
           waitlistEnabled: settings.waitlistEnabled !== false,
           reviewsPublic: settings.publicReviewsEnabled === true,
+          walkInQueueEnabled: cola.walkInQueueEnabled,
+          walkInPublicJoin: cola.walkInQueueEnabled && cola.walkInPublicJoin,
           imageUrl: organization.imageUrl,
           icon: organization.icon,
           color: organization.color,
@@ -361,6 +371,60 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request) => publicReviews(request.params.organizationId, request.query),
+  );
+
+  app.post(
+    '/organizations/:organizationId/queue',
+    {
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+      schema: {
+        tags: ['publico'],
+        summary: 'Coger turno sin cita previa',
+        description:
+          'Solo si el negocio lo permite. Devuelve el número de turno y lo que queda por delante.',
+        params: z.object({ organizationId: z.string().min(1) }),
+        body: joinQueueSchema,
+      },
+    },
+    async (request, reply) => {
+      const entry = await joinQueue(request.params.organizationId, request.body, {
+        userId: request.auth.userId,
+        isStaff: false,
+      });
+      return reply.status(201).send({
+        id: entry.id,
+        ticketNumber: entry.ticketNumber,
+        ahead: entry.ahead,
+        estimatedWaitMinutes: entry.estimatedWaitMinutes,
+        status: entry.status,
+      });
+    },
+  );
+
+  app.get(
+    '/organizations/:organizationId/queue/:entryId',
+    {
+      schema: {
+        tags: ['publico'],
+        summary: 'Consultar el propio turno',
+        params: z.object({ organizationId: z.string().min(1), entryId: z.string().min(1) }),
+      },
+    },
+    async (request) => ticketStatus(request.params.organizationId, request.params.entryId),
+  );
+
+  app.get(
+    '/organizations/:organizationId/queue-display',
+    {
+      schema: {
+        tags: ['publico'],
+        summary: 'Pantalla de sala',
+        description: 'A quién se está llamando y quién va después. Solo número y nombre de pila.',
+        params: z.object({ organizationId: z.string().min(1) }),
+        querystring: z.object({ locationId: z.string().optional() }),
+      },
+    },
+    async (request) => displayBoard(request.params.organizationId, request.query),
   );
 
   app.get(

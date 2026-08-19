@@ -17,6 +17,7 @@ import AppointmentDetail from './pages/AppointmentDetail.tsx';
 import Profile from './pages/Profile.tsx';
 import Lookup from './pages/Lookup.tsx';
 import OrganizationPage from './pages/OrganizationPage.tsx';
+import QueueDisplay from './pages/QueueDisplay.tsx';
 
 import Dashboard from './pages/admin/Dashboard.tsx';
 import Agenda from './pages/admin/Agenda.tsx';
@@ -31,6 +32,7 @@ import Integrations from './pages/admin/Integrations.tsx';
 import Settings from './pages/admin/Settings.tsx';
 import Credits from './pages/admin/Credits.tsx';
 import Customers from './pages/admin/Customers.tsx';
+import Queue from './pages/admin/Queue.tsx';
 import System from './pages/admin/System.tsx';
 import Access from './pages/admin/Access.tsx';
 import Organizations from './pages/admin/Organizations.tsx';
@@ -110,6 +112,10 @@ export default function App() {
       <Route path="/activar" element={<Activate />} />
 
       {/* Portal de cliente. */}
+      {/* Sin el contenedor del portal: es una pantalla para colgar en la
+          pared, sin menús ni nada que pulsar por error. */}
+      <Route path="/:slug/turnos" element={<QueueDisplay />} />
+
       <Route element={<CustomerLayout />}>
         <Route index element={<Home />} />
         <Route path="/consultar" element={<Lookup />} />
@@ -179,6 +185,7 @@ export default function App() {
         <Route path="recursos" element={<Resources />} />
         <Route path="horarios" element={<Schedules />} />
         <Route path="clientes" element={<Customers />} />
+        <Route path="turnos" element={<Queue />} />
         <Route path="equipo" element={<Team />} />
         <Route path="informes" element={<Reports />} />
         <Route path="avisos" element={<AdminNotifications />} />

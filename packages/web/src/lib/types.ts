@@ -201,6 +201,10 @@ export interface PublicOrganization {
     waitlistEnabled: boolean;
     /** El negocio enseña sus valoraciones en la página pública. */
     reviewsPublic: boolean;
+    /** Trabaja también por orden de llegada. */
+    walkInQueueEnabled: boolean;
+    /** Y deja coger turno desde la web. */
+    walkInPublicJoin: boolean;
     imageUrl: string | null;
     icon: string | null;
     color: string | null;

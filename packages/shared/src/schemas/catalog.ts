@@ -61,6 +61,12 @@ export const organizationSettingsSchema = z
     reviewsRequireApproval: z.boolean().default(true),
     /** Lista de espera activa. */
     waitlistEnabled: z.boolean().default(true),
+    /** Cola sin cita previa, por orden de llegada. */
+    walkInQueueEnabled: z.boolean().default(false),
+    /** El cliente puede coger turno desde la página del negocio. */
+    walkInPublicJoin: z.boolean().default(false),
+    /** Minutos que se estiman por turno cuando no se sabe qué viene a hacer. */
+    walkInDefaultMinutes: z.number().int().min(5).max(240).default(20),
     /** Minutos de validez de una oferta de lista de espera. */
     waitlistOfferMinutes: z.number().int().min(5).max(1440).default(60),
     /** Tolerancia, en minutos, del control de acceso antes y después de la cita. */
