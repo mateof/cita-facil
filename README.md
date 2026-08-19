@@ -137,6 +137,7 @@ ingresos, plantillas de aviso, integraciones, ajustes y copias de seguridad.
 | [API](docs/api.md) | Endpoints, autenticación y errores |
 | [Reglas de reserva](docs/reglas-de-reserva.md) | Cobro del bono, plazos y programaciones semanales |
 | [Clientes](docs/clientes.md) | Ficha de cliente: historial, gasto, faltas, notas y etiquetas |
+| [Formularios](docs/formularios.md) | Preguntas previas y consentimientos firmados |
 | [Turnos](docs/turnos.md) | Cola sin cita previa, avisos y pantalla de sala |
 | [Informes](docs/informes.md) | Comparativas, comisiones y exportación a CSV |
 | [Valoraciones](docs/valoraciones.md) | Moderación, respuesta del negocio y publicación en la página |

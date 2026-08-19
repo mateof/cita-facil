@@ -18,11 +18,14 @@ import {
   PageHeader,
   Select,
   Switch,
+  Tabs,
   Textarea,
 } from '../../components/ui.tsx';
 import { AvatarPicker } from '../../components/avatar-picker.tsx';
 import { CutoffSelect } from '../../components/cutoff-select.tsx';
 import { EntityAvatar } from '../../components/avatar.tsx';
+import { FormsTab } from './Forms.tsx';
+import { ServiceFormsPicker } from '../../components/service-forms.tsx';
 
 type Draft = Partial<AdminService> & { descriptionText?: string };
 
@@ -56,7 +59,33 @@ const EMPTY: Draft = {
 };
 
 /** Gestión de servicios, incluida la duración ajustable por el cliente. */
+/**
+ * Servicios y los formularios que piden.
+ *
+ * Van en la misma pantalla con dos pestañas porque un formulario suelto no
+ * significa nada: existe colgado del servicio que lo exige.
+ */
 export default function Services() {
+  const { t } = useTranslation();
+  const [tab, setTab] = useState('services');
+
+  return (
+    <div>
+      <PageHeader title={t('admin.services.title')} />
+      <Tabs
+        active={tab}
+        onChange={setTab}
+        tabs={[
+          { id: 'services', label: t('admin.services.title') },
+          { id: 'forms', label: t('admin.forms.title') },
+        ]}
+      />
+      {tab === 'services' ? <ServicesTab /> : <FormsTab />}
+    </div>
+  );
+}
+
+function ServicesTab() {
   const { t, i18n } = useTranslation();
   const locale = i18n.language.slice(0, 2);
   const organizationId = useAuth((state) => state.activeOrganizationId);
@@ -99,14 +128,11 @@ export default function Services() {
 
   return (
     <div>
-      <PageHeader
-        title={t('admin.services.title')}
-        actions={
-          <Button icon={<Plus className="size-4" />} onClick={() => setDraft({ ...EMPTY })}>
-            {t('admin.services.new')}
-          </Button>
-        }
-      />
+      <div className="mb-4 flex justify-end">
+        <Button icon={<Plus className="size-4" />} onClick={() => setDraft({ ...EMPTY })}>
+          {t('admin.services.new')}
+        </Button>
+      </div>
 
       {services.isLoading && <LoadingBlock rows={3} />}
       <ErrorMessage error={remove.error} />
@@ -528,6 +554,10 @@ function ServiceForm({
             </label>
           ))}
         </div>
+      </Field>
+
+      <Field label={t('admin.forms.title')} hint={t('admin.forms.serviceHint')}>
+        <ServiceFormsPicker organizationId={organizationId} serviceId={draft.id} />
       </Field>
     </div>
   );

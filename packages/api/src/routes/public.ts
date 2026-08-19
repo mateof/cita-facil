@@ -30,6 +30,7 @@ import {
   queueSettings,
   ticketStatus,
 } from '../modules/appointments/queue.js';
+import { pendingForms } from '../modules/catalog/forms.js';
 import {
   findByAccessCode,
   type AppointmentDetail,
@@ -371,6 +372,21 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request) => publicReviews(request.params.organizationId, request.query),
+  );
+
+  app.get(
+    '/organizations/:organizationId/services/:serviceId/forms',
+    {
+      schema: {
+        tags: ['publico'],
+        summary: 'Formularios que hay que responder para reservar este servicio',
+        description:
+          'Con sesión iniciada se dejan fuera los que ya se respondieron y solo se piden una vez.',
+        params: z.object({ organizationId: z.string().min(1), serviceId: z.string().min(1) }),
+      },
+    },
+    async (request) =>
+      pendingForms(request.params.organizationId, request.params.serviceId, request.auth.userId),
   );
 
   app.post(

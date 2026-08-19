@@ -59,6 +59,9 @@ export interface Database {
   credit_ledger: CreditLedgerTable;
   customer_profiles: CustomerProfilesTable;
   queue_entries: QueueEntriesTable;
+  forms: FormsTable;
+  service_forms: ServiceFormsTable;
+  form_responses: FormResponsesTable;
 
   api_keys: ApiKeysTable;
   webhook_endpoints: WebhookEndpointsTable;
@@ -773,6 +776,48 @@ export interface QueueEntriesTable {
   appointment_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * Formulario o consentimiento de la organización. Se engancha a los servicios
+ * que lo piden, no al revés: la misma hoja vale para varios tratamientos.
+ */
+export interface FormsTable {
+  id: string;
+  organization_id: string;
+  name: string;
+  description: string | null;
+  /** `form` o `consent`. */
+  kind: string;
+  fields_json: string | null;
+  consent_text: string | null;
+  requires_signature: number;
+  active: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ServiceFormsTable {
+  service_id: string;
+  form_id: string;
+  required: number;
+  /** Se pide una sola vez por persona, no en cada cita. */
+  once_per_customer: number;
+  sort_order: number;
+}
+
+export interface FormResponsesTable {
+  id: string;
+  organization_id: string;
+  form_id: string;
+  appointment_id: string | null;
+  customer_id: string | null;
+  guest_name: string | null;
+  answers_json: string | null;
+  accepted_at: string | null;
+  signature_name: string | null;
+  ip: string | null;
+  created_at: string;
 }
 
 /* ------------------------------------------------------------ Integraciones */

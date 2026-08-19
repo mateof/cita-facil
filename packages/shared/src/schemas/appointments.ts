@@ -8,6 +8,7 @@ import {
   paginationSchema,
   phoneSchema,
 } from './common.js';
+import { submitFormResponseSchema } from './forms.js';
 
 /* -------------------------------------------------------------------------- */
 /* Consulta de disponibilidad                                                  */
@@ -84,6 +85,11 @@ export const createAppointmentSchema = z.object({
   notes: z.string().max(2000).optional(),
   /** Campos adicionales definidos por la organización. */
   customFields: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
+  /**
+   * Respuestas de los formularios que pide el servicio. Van con la reserva y
+   * no después para que no exista una cita sin el consentimiento que exigía.
+   */
+  formResponses: z.array(submitFormResponseSchema).max(10).optional(),
   /** Solo el personal puede reservar en nombre de otro cliente. */
   customerId: idSchema.optional(),
   guest: guestSchema.optional(),

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Ban, CalendarDays, Star, Ticket, X } from 'lucide-react';
+import { Ban, CalendarDays, FileSignature, Star, Ticket, X } from 'lucide-react';
 import type { CustomerDetail, CustomerSummary } from '@cita-facil/shared';
 import { api } from '../../lib/api.ts';
 import { useAuth } from '../../stores/auth.ts';
@@ -491,6 +491,46 @@ function CustomerSheet({
                       {wallet.expiresAt &&
                         ` · ${formatDate(wallet.expiresAt, locale, undefined, { dateStyle: 'medium' })}`}
                     </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {detalle.forms.length > 0 && (
+            <section>
+              <h3 className="mb-2 flex items-center gap-2 font-semibold">
+                <FileSignature className="size-4 text-slate-400" aria-hidden />
+                {t('admin.customers.forms')}
+              </h3>
+              <ul className="divide-y divide-slate-100">
+                {detalle.forms.map((respuesta) => (
+                  <li key={respuesta.id} className="py-2 text-sm">
+                    <p className="font-medium">
+                      {respuesta.formName}
+                      <span className="ml-2 font-normal text-slate-500">
+                        {formatDate(respuesta.createdAt, locale, undefined, {
+                          dateStyle: 'medium',
+                        })}
+                      </span>
+                    </p>
+
+                    {respuesta.acceptedAt ? (
+                      <p className="text-slate-600">
+                        {t('admin.customers.signedBy', {
+                          name: respuesta.signatureName ?? t('admin.customers.accepted'),
+                        })}
+                      </p>
+                    ) : (
+                      <dl className="text-slate-600">
+                        {Object.entries(respuesta.answers).map(([clave, valor]) => (
+                          <div key={clave} className="flex gap-2">
+                            <dt className="text-slate-500">{clave}:</dt>
+                            <dd>{String(valor)}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
                   </li>
                 ))}
               </ul>

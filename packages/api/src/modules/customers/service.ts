@@ -11,6 +11,7 @@ import { fromDbJson } from '../../db/columns.js';
 import { isoNow } from '../../lib/dates.js';
 import { newId } from '../../lib/ids.js';
 import { NotFoundError } from '../../lib/errors.js';
+import { listResponses } from '../catalog/forms.js';
 
 /**
  * Ficha de cliente.
@@ -532,6 +533,7 @@ export async function getCustomerDetail(
     .limit(10)
     .execute();
 
+  const forms = await listResponses(organizationId, { customerId: userId, limit: 20 });
   const profile = profiles.get(userId);
 
   return {
@@ -567,6 +569,7 @@ export async function getCustomerDetail(
       serviceName: review.service_name,
       createdAt: review.created_at,
     })),
+    forms,
   };
 }
 

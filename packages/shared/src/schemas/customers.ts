@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { idSchema } from './common.js';
+import { formResponseSchema } from './forms.js';
 
 /**
  * Ficha de cliente.
@@ -115,6 +116,8 @@ export const customerDetailSchema = customerSummarySchema.extend({
       createdAt: z.string(),
     }),
   ),
+  /** Formularios respondidos y consentimientos firmados. */
+  forms: z.array(formResponseSchema),
 });
 export type CustomerDetail = z.infer<typeof customerDetailSchema>;
 

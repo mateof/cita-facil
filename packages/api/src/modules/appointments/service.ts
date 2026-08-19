@@ -32,6 +32,7 @@ import { notify } from '../notifications/service.js';
 import { consumeCredit, hasUsableCredit, refundCredit } from '../credits/service.js';
 import { cancelDebtForAppointment, countPendingDebts, recordDebt } from '../credits/debts.js';
 import { effectiveRules } from './rules.js';
+import { pendingForms, saveFormResponse } from '../catalog/forms.js';
 import { getAuthSettings } from '../settings/access-policy.js';
 import { recordAudit } from '../audit/service.js';
 import { dispatchWebhook } from '../integrations/webhooks.js';
@@ -174,6 +175,8 @@ export async function createAppointment(
       throw new ForbiddenError('Este servicio no admite reserva online', 'service_not_bookable');
     }
   }
+
+  await assertFormsAnswered(organizationId, service.id, input, actor);
 
   const settings = await organizationSettings(organizationId);
   const locationId = input.locationId ?? service.location_id ?? (await defaultLocationId(organizationId));
@@ -403,6 +406,19 @@ export async function createAppointment(
 
   const appointment = await requireAppointmentDetail(id);
 
+  for (const respuesta of input.formResponses ?? []) {
+    await saveFormResponse(organizationId, respuesta, {
+      appointmentId: id,
+      customerId,
+      guestName: customerId ? null : (input.guest?.name ?? null),
+      ip: actor.ip ?? null,
+    }).catch((error) =>
+      // La cita ya existe: perder una respuesta no puede tumbar la reserva, y
+      // lo que falte se ve en el panel como pendiente.
+      logger.warn({ err: error, appointmentId: id }, 'No se pudo guardar el formulario'),
+    );
+  }
+
   if (input.idempotencyKey) {
     await storeIdempotentResponse(organizationId, input.idempotencyKey, id);
   }
@@ -421,6 +437,40 @@ export async function createAppointment(
   });
 
   return { appointment, idempotentReplay: false };
+}
+
+/**
+ * Sin el consentimiento obligatorio no hay cita.
+ *
+ * Se comprueba antes de tocar la agenda, no después: una cita creada a la que
+ * le falta el papel que exige la ley es peor que una reserva que no llega a
+ * hacerse, porque nadie la mira hasta que la persona está en la puerta.
+ *
+ * El mostrador sí puede saltárselo. En un centro real el consentimiento se
+ * firma al llegar, con el papel delante, y bloquear el alta por teléfono
+ * obligaría a inventarse una aceptación que nadie ha dado.
+ */
+async function assertFormsAnswered(
+  organizationId: string,
+  serviceId: string,
+  input: CreateAppointmentInput,
+  actor: ActorContext,
+): Promise<void> {
+  if (actor.isStaff) return;
+
+  const customerId = input.customerId ?? actor.userId ?? null;
+  const pendientes = await pendingForms(organizationId, serviceId, customerId);
+  const obligatorios = pendientes.filter((form) => form.required);
+  if (obligatorios.length === 0) return;
+
+  const respondidos = new Set((input.formResponses ?? []).map((respuesta) => respuesta.formId));
+  const falta = obligatorios.find((form) => !respondidos.has(form.id));
+  if (falta) {
+    throw new BadRequestError(
+      `Falta responder "${falta.name}" antes de reservar`,
+      'form_required',
+    );
+  }
 }
 
 /**

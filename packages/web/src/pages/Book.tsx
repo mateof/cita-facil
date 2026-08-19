@@ -40,6 +40,12 @@ import { OrganizationFooter } from '../components/OrganizationFooter.tsx';
 import { OrganizationReviews, RatingChip } from '../components/reviews.tsx';
 import { WalkInQueue } from '../components/walk-in.tsx';
 import {
+  BookingForms,
+  formsCompleted,
+  type FormAnswers,
+  type PendingForm,
+} from '../components/booking-forms.tsx';
+import {
   Button,
   Card,
   ErrorMessage,
@@ -919,6 +925,22 @@ function ConfirmStep({
 }) {
   const { t } = useTranslation();
   const needsGuestData = !isAuthenticated && organization.allowGuestBooking;
+  const [formAnswers, setFormAnswers] = useState<FormAnswers>({});
+
+  /*
+   * Los formularios que pide el servicio. Con sesión iniciada llegan ya sin
+   * los que se firmaron alguna vez y solo se piden una.
+   */
+  const forms = useQuery({
+    queryKey: ['service-forms', organization.id, service.id, isAuthenticated],
+    queryFn: () =>
+      api.get<PendingForm[]>(
+        `/public/organizations/${organization.id}/services/${service.id}/forms`,
+      ),
+    retry: false,
+  });
+
+  const pendientes = forms.data ?? [];
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -933,6 +955,7 @@ function ConfirmStep({
         guest: needsGuestData
           ? { name: guest.name, email: guest.email || undefined, phone: guest.phone || undefined }
           : undefined,
+        formResponses: Object.values(formAnswers),
         // Evita duplicar la cita si el botón se pulsa dos veces o hay reintento.
         idempotencyKey: `${slot.startsAt}-${service.id}-${guest.email || 'auth'}`,
       }),
@@ -1011,6 +1034,8 @@ function ConfirmStep({
         </Card>
       )}
 
+      <BookingForms forms={pendientes} answers={formAnswers} onChange={setFormAnswers} />
+
       <Field label={t('booking.notes')}>
         <Textarea
           value={notes}
@@ -1026,7 +1051,10 @@ function ConfirmStep({
         <Button
           fullWidth
           loading={mutation.isPending}
-          disabled={needsGuestData && guest.name.trim().length < 2}
+          disabled={
+            (needsGuestData && guest.name.trim().length < 2) ||
+            !formsCompleted(pendientes, formAnswers)
+          }
           onClick={() => mutation.mutate()}
           icon={<CalendarCheck className="size-4" />}
         >
