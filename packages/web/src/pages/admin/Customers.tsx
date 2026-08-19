@@ -20,9 +20,11 @@ import {
   PageHeader,
   Select,
   StatTile,
+  Tabs,
   Textarea,
 } from '../../components/ui.tsx';
 import { EntityAvatar } from '../../components/avatar.tsx';
+import { ImportTab } from './Import.tsx';
 
 /**
  * Clientes del negocio.
@@ -39,6 +41,30 @@ import { EntityAvatar } from '../../components/avatar.tsx';
 const INACTIVE_OPTIONS = [30, 60, 90, 180, 365];
 
 export default function Customers() {
+  const { t } = useTranslation();
+  const can = useAuth((state) => state.can);
+  const [tab, setTab] = useState('customers');
+
+  return (
+    <div>
+      <PageHeader
+        title={t('admin.customers.title')}
+        description={t('admin.customers.description')}
+      />
+      <Tabs
+        active={tab}
+        onChange={setTab}
+        tabs={[
+          { id: 'customers', label: t('admin.customers.title') },
+          ...(can('customer:write') ? [{ id: 'import', label: t('admin.import.title') }] : []),
+        ]}
+      />
+      {tab === 'customers' ? <CustomersTab /> : <ImportTab />}
+    </div>
+  );
+}
+
+function CustomersTab() {
   const { t, i18n } = useTranslation();
   const locale = i18n.language.slice(0, 2);
   const organizationId = useAuth((state) => state.activeOrganizationId);
@@ -73,11 +99,6 @@ export default function Customers() {
 
   return (
     <div>
-      <PageHeader
-        title={t('admin.customers.title')}
-        description={t('admin.customers.description')}
-      />
-
       <Card className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Field label={t('common.search')} className="mb-0">
           <Input

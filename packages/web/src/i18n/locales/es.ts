@@ -912,6 +912,38 @@ export default {
         first_available: 'El primero libre',
       },
     },
+    import: {
+      title: 'Importar',
+      what: 'Qué se importa',
+      customers: 'Clientes',
+      appointments: 'Citas',
+      file: 'Fichero',
+      choose: 'Elegir fichero CSV',
+      paste: 'O pega aquí el contenido',
+      pasteHint: 'La primera fila son los nombres de las columnas.',
+      columnsCustomers:
+        'Columnas que se leen: nombre, correo, teléfono, NIF, notas y etiquetas. Se reconoce a quien ya existe por su correo o su NIF.',
+      columnsAppointments:
+        'Columnas que se leen: fecha (AAAA-MM-DD), hora (HH:MM), servicio, cliente o correo, profesional, duración, precio y estado.',
+      dryRun: 'Probar sin escribir',
+      run: 'Importar de verdad',
+      done: 'Importación terminada: {{created}} creados y {{updated}} actualizados.',
+      total_one: '{{count}} fila',
+      total_other: '{{count}} filas',
+      created_one: '{{count}} nuevo',
+      created_other: '{{count}} nuevos',
+      updated_one: '{{count}} actualizado',
+      updated_other: '{{count}} actualizados',
+      errors_one: '{{count}} con error',
+      errors_other: '{{count}} con error',
+      status: {
+        created: 'Nuevo',
+        updated: 'Actualizado',
+        skipped: 'Saltado',
+        error: 'Error',
+      },
+    },
+
     integrations: {
       title: 'Integraciones',
       apiKeys: 'Claves de API',

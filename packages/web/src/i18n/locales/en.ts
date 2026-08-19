@@ -911,6 +911,38 @@ export default {
         first_available: 'First available',
       },
     },
+    import: {
+      title: 'Import',
+      what: 'What to import',
+      customers: 'Customers',
+      appointments: 'Appointments',
+      file: 'File',
+      choose: 'Choose CSV file',
+      paste: 'Or paste the contents here',
+      pasteHint: 'The first row holds the column names.',
+      columnsCustomers:
+        'Columns read: name, email, phone, ID number, notes and tags. Existing people are matched by email or ID number.',
+      columnsAppointments:
+        'Columns read: date (YYYY-MM-DD), time (HH:MM), service, customer or email, professional, duration, price and status.',
+      dryRun: 'Dry run',
+      run: 'Import for real',
+      done: 'Import finished: {{created}} created and {{updated}} updated.',
+      total_one: '{{count}} row',
+      total_other: '{{count}} rows',
+      created_one: '{{count}} new',
+      created_other: '{{count}} new',
+      updated_one: '{{count}} updated',
+      updated_other: '{{count}} updated',
+      errors_one: '{{count}} failed',
+      errors_other: '{{count}} failed',
+      status: {
+        created: 'New',
+        updated: 'Updated',
+        skipped: 'Skipped',
+        error: 'Error',
+      },
+    },
+
     integrations: {
       title: 'Integrations',
       apiKeys: 'API keys',

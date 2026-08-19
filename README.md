@@ -136,6 +136,7 @@ ingresos, plantillas de aviso, integraciones, ajustes y copias de seguridad.
 | [Autenticación](docs/autenticacion.md) | DNIe, FNMT, Cl@ve, passkeys y 2FA |
 | [API](docs/api.md) | Endpoints, autenticación y errores |
 | [Reglas de reserva](docs/reglas-de-reserva.md) | Cobro del bono, plazos y programaciones semanales |
+| [Importación](docs/importacion.md) | Traer clientes y citas desde un CSV |
 | [Clientes](docs/clientes.md) | Ficha de cliente: historial, gasto, faltas, notas y etiquetas |
 | [Formularios](docs/formularios.md) | Preguntas previas y consentimientos firmados |
 | [Turnos](docs/turnos.md) | Cola sin cita previa, avisos y pantalla de sala |

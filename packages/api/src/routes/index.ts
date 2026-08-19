@@ -13,6 +13,7 @@ import creditRoutes from './credits.js';
 import customerRoutes from './customers.js';
 import queueRoutes from './queue.js';
 import formRoutes from './forms.js';
+import importRoutes from './imports.js';
 import reportRoutes from './reports.js';
 import adminRoutes from './admin.js';
 import integrationRoutes from './integrations.js';
@@ -37,6 +38,7 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   await app.register(customerRoutes, { prefix: '/organizations/:organizationId' });
   await app.register(queueRoutes, { prefix: '/organizations/:organizationId' });
   await app.register(formRoutes, { prefix: '/organizations/:organizationId' });
+  await app.register(importRoutes, { prefix: '/organizations/:organizationId' });
   await app.register(reportRoutes, { prefix: '/organizations/:organizationId' });
   await app.register(themeRoutes, { prefix: '/organizations/:organizationId' });
   await app.register(scheduleRoutes, { prefix: '/organizations/:organizationId' });
