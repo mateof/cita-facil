@@ -35,18 +35,23 @@ async function citaDeInvitado(request: APIRequestContext, nombre: string): Promi
     services: { id: string }[];
   };
 
-  const dia = new Intl.DateTimeFormat('sv-SE', { timeZone: publica.organization.timezone }).format(
-    new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-  );
+  // Rango de dos semanas: pidiendo un solo día se cae en cuanto ese día es
+  // domingo, que la sede de ejemplo cierra, o se lo han llevado otras pruebas.
+  const desde = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: publica.organization.timezone,
+  }).format(new Date());
+  const hasta = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: publica.organization.timezone,
+  }).format(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000));
 
   const disponibilidad = (await (
     await request.get(
-      `/api/v1/public/organizations/${publica.organization.id}/availability?serviceId=${publica.services[0].id}&from=${dia}&to=${dia}`,
+      `/api/v1/public/organizations/${publica.organization.id}/availability?serviceId=${publica.services[0].id}&from=${desde}&to=${hasta}`,
     )
   ).json()) as { days: { date: string; slots: { startsAt: string }[] }[] };
 
   const huecos = disponibilidad.days.flatMap((jornada) => jornada.slots);
-  expect(huecos.length).toBeGreaterThan(0);
+  expect(huecos.length, 'la agenda de pruebas se ha quedado sin huecos').toBeGreaterThan(0);
 
   const response = await request.post(
     `/api/v1/organizations/${publica.organization.id}/appointments`,

@@ -307,6 +307,26 @@ export default {
     },
   },
 
+  reviews: {
+    title: 'Valoracións',
+    countLabel_one: '{{count}} valoración',
+    countLabel_other: '{{count}} valoracións',
+    pendingCount_one: '{{count}} por aprobar',
+    pendingCount_other: '{{count}} por aprobar',
+    onlyPending: 'Só as que faltan por aprobar',
+    published: 'Publicada',
+    pending: 'Sen publicar',
+    publish: 'Publicar',
+    hide: 'Agochar',
+    reply: 'Resposta do negocio',
+    replyHint: 'Amósase debaixo da valoración, na páxina pública.',
+    empty: 'Aínda non hai valoracións.',
+    publicSetting: 'Amosar as valoracións na páxina pública',
+    publicSettingHint: 'A nota media aparece xunto a cada servizo e as reseñas, asinadas co nome de pía e a inicial do apelido.',
+    approvalSetting: 'Aprobar as valoracións antes de publicalas',
+    approvalSettingHint: 'Sen isto, o que escriba un cliente sae na páxina do negocio sen que ninguén o lea antes.',
+  },
+
   admin: {
     todayTitle: 'Hoxe no centro',
     todayEmpty: 'Non hai citas para este día.',

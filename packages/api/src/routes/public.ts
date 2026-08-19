@@ -22,6 +22,7 @@ import {
 } from '../modules/catalog/service.js';
 import { publishedPage, publishedPages } from '../modules/catalog/pages.js';
 import { activeTheme } from '../modules/themes/service.js';
+import { publicReviews, ratingsByService } from '../modules/appointments/reviews.js';
 import {
   findByAccessCode,
   type AppointmentDetail,
@@ -147,12 +148,15 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const locale = request.query.locale ?? request.locale;
-      const [locations, services, categories, pages, tema] = await Promise.all([
+      const [locations, services, categories, pages, tema, notas] = await Promise.all([
         listLocations(organization.id, { onlyActive: true }),
         listServices(organization.id, { onlyActive: true, onlyPublic: true }),
         listCategories(organization.id),
         publishedPages(organization.id, locale),
         activeTheme(organization.id),
+        // Vacío si el negocio no publica valoraciones, así que la página no
+        // enseña notas que nadie ha decidido enseñar.
+        ratingsByService(organization.id),
       ]);
 
       // La reserva sin cuenta necesita el visto bueno de la instalación y el de
@@ -184,6 +188,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           },
           allowGuestBooking,
           waitlistEnabled: settings.waitlistEnabled !== false,
+          reviewsPublic: settings.publicReviewsEnabled === true,
           imageUrl: organization.imageUrl,
           icon: organization.icon,
           color: organization.color,
@@ -242,6 +247,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           maxAdvanceDays: service.maxAdvanceDays,
           minAdvanceMinutes: service.minAdvanceMinutes,
           cancellationCutoffMinutes: service.cancellationCutoffMinutes,
+          rating: notas.get(service.id) ?? null,
         })),
         resources: resources
           .filter((resource) => resource.bookableDirectly)
@@ -338,6 +344,25 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
    * lo que permite que quien reservó como invitado pueda ver, descargar o
    * cancelar su cita desde el enlace del correo.
    */
+  app.get(
+    '/organizations/:organizationId/reviews',
+    {
+      schema: {
+        tags: ['publico'],
+        summary: 'Valoraciones publicadas de un establecimiento',
+        description:
+          'Vacío si el negocio no ha activado la publicación de valoraciones. Las reseñas van firmadas con el nombre de pila y la inicial del apellido.',
+        params: z.object({ organizationId: z.string().min(1) }),
+        querystring: z.object({
+          serviceId: z.string().optional(),
+          resourceId: z.string().optional(),
+          limit: z.coerce.number().int().min(1).max(100).default(20),
+        }),
+      },
+    },
+    async (request) => publicReviews(request.params.organizationId, request.query),
+  );
+
   app.get(
     '/appointments/lookup',
     {

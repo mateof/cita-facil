@@ -18,8 +18,11 @@ import {
   Modal,
   PageHeader,
   Select,
+  Switch,
+  Tabs,
   Textarea,
 } from '../../components/ui.tsx';
+import { RatingStars } from '../../components/reviews.tsx';
 import { Combobox } from '../../components/combobox.tsx';
 import { CustomerPicker, toOptions } from '../../components/pickers.tsx';
 
@@ -33,8 +36,37 @@ const STATUSES = [
   'no_show',
 ] as const;
 
-/** Buscador y gestor de citas del panel, con alta manual desde el mostrador. */
+/**
+ * Citas del panel.
+ *
+ * Dos pestañas: el buscador de citas, que es el día a día, y las valoraciones,
+ * que salen de esas mismas citas y hay que aprobar antes de que se vean en la
+ * página pública. Van juntas para no añadir otra entrada al menú lateral por
+ * una pantalla que se abre una vez a la semana.
+ */
 export default function Appointments() {
+  const { t } = useTranslation();
+  const can = useAuth((state) => state.can);
+  const [tab, setTab] = useState('appointments');
+
+  return (
+    <div>
+      <PageHeader title={t('nav.appointments')} />
+      <Tabs
+        active={tab}
+        onChange={setTab}
+        tabs={[
+          { id: 'appointments', label: t('nav.appointments') },
+          ...(can('review:moderate') ? [{ id: 'reviews', label: t('reviews.title') }] : []),
+        ]}
+      />
+      {tab === 'appointments' ? <AppointmentsTab /> : <ReviewsTab />}
+    </div>
+  );
+}
+
+/** Buscador y gestor de citas, con alta manual desde el mostrador. */
+function AppointmentsTab() {
   const { t, i18n } = useTranslation();
   const locale = i18n.language.slice(0, 2);
   const organizationId = useAuth((state) => state.activeOrganizationId);
@@ -71,14 +103,11 @@ export default function Appointments() {
 
   return (
     <div>
-      <PageHeader
-        title={t('nav.appointments')}
-        actions={
-          <Button icon={<CalendarPlus className="size-4" />} onClick={() => setNewOpen(true)}>
-            {t('admin.newAppointment')}
-          </Button>
-        }
-      />
+      <div className="mb-4 flex justify-end">
+        <Button icon={<CalendarPlus className="size-4" />} onClick={() => setNewOpen(true)}>
+          {t('admin.newAppointment')}
+        </Button>
+      </div>
 
       <Card className="mb-4">
         <div className="grid gap-3 sm:grid-cols-4">
@@ -421,6 +450,143 @@ function NewAppointmentModal({
         <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
       </Field>
     </Modal>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Valoraciones                                                               */
+/* -------------------------------------------------------------------------- */
+
+interface StaffReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  reply: string | null;
+  published: boolean;
+  createdAt: string;
+  customerName: string | null;
+  serviceName: string | null;
+  resourceName: string | null;
+}
+
+/**
+ * Moderación de valoraciones.
+ *
+ * Publicar es un interruptor por reseña, no una acción masiva: lo que se
+ * publica lleva el nombre del negocio al lado, así que la decisión se toma una
+ * a una. Ocultar no borra nada; la valoración sigue contando en el panel y en
+ * la ficha del cliente, simplemente no se enseña fuera.
+ */
+function ReviewsTab() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language.slice(0, 2);
+  const organizationId = useAuth((state) => state.activeOrganizationId);
+  const queryClient = useQueryClient();
+
+  const [onlyPending, setOnlyPending] = useState(false);
+  const [replies, setReplies] = useState<Record<string, string>>({});
+
+  const { data, isLoading, error } = useQuery({
+    enabled: Boolean(organizationId),
+    queryKey: ['admin-reviews', organizationId, onlyPending],
+    queryFn: () =>
+      api.get<{ items: StaffReview[]; average: number | null; count: number; pending: number }>(
+        `/organizations/${organizationId}/reviews`,
+        { query: { onlyPending: onlyPending || undefined } },
+      ),
+  });
+
+  const update = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Record<string, unknown> }) =>
+      api.patch(`/organizations/${organizationId}/reviews/${id}`, patch),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['admin-reviews'] }),
+  });
+
+  return (
+    <div>
+      <Card className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {data?.average !== null && data?.average !== undefined && (
+            <>
+              <span className="text-2xl font-bold tabular-nums">
+                {data.average.toLocaleString(locale === 'en' ? 'en-GB' : 'es-ES', {
+                  minimumFractionDigits: 1,
+                })}
+              </span>
+              <RatingStars value={data.average} />
+            </>
+          )}
+          <span className="text-sm text-slate-500">
+            {t('reviews.countLabel', { count: data?.count ?? 0 })}
+            {(data?.pending ?? 0) > 0 && ` · ${t('reviews.pendingCount', { count: data!.pending })}`}
+          </span>
+        </div>
+
+        <Switch
+          checked={onlyPending}
+          onChange={setOnlyPending}
+          label={t('reviews.onlyPending')}
+        />
+      </Card>
+
+      <ErrorMessage error={error ?? update.error} />
+      {isLoading && <LoadingBlock rows={3} />}
+
+      {data && data.items.length === 0 && <EmptyState title={t('reviews.empty')} />}
+
+      <ul className="space-y-2">
+        {data?.items.map((review) => (
+          <Card as="li" key={review.id}>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <RatingStars value={review.rating} />
+              <span className="font-medium">{review.customerName ?? t('admin.customer')}</span>
+              <span className="text-slate-400">
+                {formatDateTime(review.createdAt, locale)}
+              </span>
+              {review.serviceName && <span className="text-slate-500">· {review.serviceName}</span>}
+              <Badge
+                className={
+                  review.published ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                }
+              >
+                {review.published ? t('reviews.published') : t('reviews.pending')}
+              </Badge>
+            </div>
+
+            {review.comment && <p className="mt-2 text-sm text-slate-700">{review.comment}</p>}
+
+            <div className="mt-3 flex flex-wrap items-end gap-2">
+              <Field label={t('reviews.reply')} className="mb-0 flex-1">
+                <Input
+                  value={replies[review.id] ?? review.reply ?? ''}
+                  placeholder={t('reviews.replyHint')}
+                  onChange={(event) =>
+                    setReplies({ ...replies, [review.id]: event.target.value })
+                  }
+                />
+              </Field>
+              <Button
+                variant="secondary"
+                disabled={replies[review.id] === undefined}
+                onClick={() =>
+                  update.mutate({ id: review.id, patch: { reply: replies[review.id] } })
+                }
+              >
+                {t('common.save')}
+              </Button>
+              <Button
+                variant={review.published ? 'ghost' : 'primary'}
+                onClick={() =>
+                  update.mutate({ id: review.id, patch: { published: !review.published } })
+                }
+              >
+                {review.published ? t('reviews.hide') : t('reviews.publish')}
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </ul>
+    </div>
   );
 }
 

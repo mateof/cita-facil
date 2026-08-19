@@ -13,7 +13,6 @@ import {
 } from '@cita-facil/shared';
 import { db } from '../db/index.js';
 import { ForbiddenError, NotFoundError } from '../lib/errors.js';
-import { isoNow } from '../lib/dates.js';
 import { newId } from '../lib/ids.js';
 import {
   cancelAppointment,
@@ -36,6 +35,11 @@ import {
   markWaitlistConverted,
 } from '../modules/appointments/waitlist.js';
 import { buildIcs, buildReceiptPdf, buildQrPng } from '../modules/appointments/documents.js';
+import {
+  listReviewsForStaff,
+  moderateReview,
+  saveReview,
+} from '../modules/appointments/reviews.js';
 import { organizationAndIdParams, organizationParams, orgId } from './helpers.js';
 
 /**
@@ -445,22 +449,16 @@ const appointmentRoutes: FastifyPluginAsync = async (fastify) => {
         throw new ForbiddenError('La cita todavía no se ha completado', 'appointment_not_completed');
       }
 
-      await db()
-        .insertInto('reviews')
-        .values({
-          id: newId(),
-          organization_id: appointment.organizationId,
-          appointment_id: appointment.id,
-          customer_id: appointment.customerId,
-          resource_id: appointment.resourceId,
-          service_id: appointment.serviceId,
-          rating: request.body.rating,
-          comment: request.body.comment ?? null,
-          published: 1,
-          reply: null,
-          created_at: isoNow(),
-        })
-        .execute();
+      await saveReview({
+        id: newId(),
+        organizationId: appointment.organizationId,
+        appointmentId: appointment.id,
+        customerId: appointment.customerId,
+        resourceId: appointment.resourceId,
+        serviceId: appointment.serviceId,
+        rating: request.body.rating,
+        comment: request.body.comment,
+      });
 
       return reply.status(201).send({ ok: true });
     },
@@ -472,43 +470,39 @@ const appointmentRoutes: FastifyPluginAsync = async (fastify) => {
       schema: {
         tags: ['citas'],
         summary: 'Valoraciones recibidas',
+        description: 'Incluye las que están esperando aprobación, que no se ven en la página pública.',
         params: organizationParams,
         querystring: z.object({
           serviceId: z.string().optional(),
           resourceId: z.string().optional(),
+          onlyPending: z.coerce.boolean().optional(),
           limit: z.coerce.number().int().min(1).max(200).default(50),
         }),
       },
     },
     async (request) => {
       request.requireOrg(orgId(request));
-      let query = db()
-        .selectFrom('reviews')
-        .leftJoin('users', 'users.id', 'reviews.customer_id')
-        .leftJoin('services', 'services.id', 'reviews.service_id')
-        .select([
-          'reviews.id',
-          'reviews.rating',
-          'reviews.comment',
-          'reviews.reply',
-          'reviews.created_at',
-          'users.name as customer_name',
-          'services.name as service_name',
-        ])
-        .where('reviews.organization_id', '=', orgId(request));
+      return listReviewsForStaff(orgId(request), request.query);
+    },
+  );
 
-      if (request.query.serviceId) query = query.where('reviews.service_id', '=', request.query.serviceId);
-      if (request.query.resourceId) query = query.where('reviews.resource_id', '=', request.query.resourceId);
-
-      const rows = await query
-        .orderBy('reviews.created_at', 'desc')
-        .limit(request.query.limit)
-        .execute();
-
-      const average =
-        rows.length > 0 ? rows.reduce((sum, row) => sum + row.rating, 0) / rows.length : null;
-
-      return { items: rows, average, count: rows.length };
+  app.patch(
+    '/reviews/:id',
+    {
+      schema: {
+        tags: ['citas'],
+        summary: 'Publicar, ocultar o responder una valoración',
+        params: organizationAndIdParams,
+        body: z.object({
+          published: z.boolean().optional(),
+          reply: z.string().max(2000).nullish(),
+        }),
+      },
+    },
+    async (request) => {
+      request.requirePermission(orgId(request), 'review:moderate');
+      await moderateReview(orgId(request), request.params.id, request.body);
+      return { ok: true };
     },
   );
 

@@ -307,6 +307,26 @@ export default {
     },
   },
 
+  reviews: {
+    title: 'Valoraciones',
+    countLabel_one: '{{count}} valoración',
+    countLabel_other: '{{count}} valoraciones',
+    pendingCount_one: '{{count}} por aprobar',
+    pendingCount_other: '{{count}} por aprobar',
+    onlyPending: 'Solo las que faltan por aprobar',
+    published: 'Publicada',
+    pending: 'Sin publicar',
+    publish: 'Publicar',
+    hide: 'Ocultar',
+    reply: 'Respuesta del negocio',
+    replyHint: 'Se enseña debajo de la valoración, en la página pública.',
+    empty: 'Todavía no hay valoraciones.',
+    publicSetting: 'Enseñar las valoraciones en la página pública',
+    publicSettingHint: 'La nota media aparece junto a cada servicio y las reseñas, firmadas con el nombre de pila y la inicial del apellido.',
+    approvalSetting: 'Aprobar las valoraciones antes de publicarlas',
+    approvalSettingHint: 'Sin esto, lo que escriba un cliente sale en la página del negocio sin que nadie lo lea antes.',
+  },
+
   admin: {
     todayTitle: 'Hoy en el centro',
     todayEmpty: 'No hay citas para este día.',

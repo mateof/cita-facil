@@ -341,6 +341,18 @@ function OrganizationTab({ section }: { section: string }) {
               label={t('admin.settings.reviewsEnabled')}
             />
             <Switch
+              checked={draft.settings.publicReviewsEnabled === true}
+              onChange={(value) => setSetting('publicReviewsEnabled', value)}
+              label={t('reviews.publicSetting')}
+              hint={t('reviews.publicSettingHint')}
+            />
+            <Switch
+              checked={draft.settings.reviewsRequireApproval !== false}
+              onChange={(value) => setSetting('reviewsRequireApproval', value)}
+              label={t('reviews.approvalSetting')}
+              hint={t('reviews.approvalSettingHint')}
+            />
+            <Switch
               checked={draft.settings.attendanceConfirmationEnabled === true}
               onChange={(value) => setSetting('attendanceConfirmationEnabled', value)}
               label={t('admin.rules.attendanceConfirmation')}

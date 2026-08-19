@@ -37,6 +37,7 @@ import type {
   Slot,
 } from '../lib/types.ts';
 import { OrganizationFooter } from '../components/OrganizationFooter.tsx';
+import { OrganizationReviews, RatingChip } from '../components/reviews.tsx';
 import {
   Button,
   Card,
@@ -252,6 +253,12 @@ export default function Book() {
 
       {step === 'done' && created && <DoneStep appointment={created} locale={locale} />}
 
+      {/* Lo mismo que el pie: las opiniones ayudan a decidir antes de empezar,
+          pero estorban cuando ya se está eligiendo la hora. */}
+      {step === 'service' && data?.organization.reviewsPublic && (
+        <OrganizationReviews organizationId={data.organization.id} />
+      )}
+
       {/* El pie solo aparece mientras se elige servicio: durante la reserva
           estorba, y en el paso final lo que toca es el resguardo. */}
       {step === 'service' && <OrganizationFooter slug={slug} />}
@@ -354,6 +361,9 @@ function ServiceStep({
                           <Ticket className="size-3.5" aria-hidden />
                           {t('booking.withPass')}
                         </span>
+                      )}
+                      {service.rating && (
+                        <RatingChip average={service.rating.average} count={service.rating.count} />
                       )}
                     </span>
                   </span>

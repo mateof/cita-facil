@@ -52,6 +52,13 @@ export const organizationSettingsSchema = z
     showResourceNames: z.boolean().default(true),
     /** Pedir valoración tras completar la cita. */
     reviewsEnabled: z.boolean().default(true),
+    /**
+     * Enseñar las valoraciones en la página pública del negocio. Es una
+     * decisión del negocio, así que de fábrica no se publica nada.
+     */
+    publicReviewsEnabled: z.boolean().default(false),
+    /** Las valoraciones nuevas esperan a que alguien las apruebe. */
+    reviewsRequireApproval: z.boolean().default(true),
     /** Lista de espera activa. */
     waitlistEnabled: z.boolean().default(true),
     /** Minutos de validez de una oferta de lista de espera. */

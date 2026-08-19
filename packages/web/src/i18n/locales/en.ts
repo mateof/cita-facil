@@ -306,6 +306,26 @@ export default {
     },
   },
 
+  reviews: {
+    title: 'Reviews',
+    countLabel_one: '{{count}} review',
+    countLabel_other: '{{count}} reviews',
+    pendingCount_one: '{{count}} awaiting approval',
+    pendingCount_other: '{{count}} awaiting approval',
+    onlyPending: 'Only those awaiting approval',
+    published: 'Published',
+    pending: 'Not published',
+    publish: 'Publish',
+    hide: 'Hide',
+    reply: 'Business reply',
+    replyHint: 'Shown under the review on the public page.',
+    empty: 'No reviews yet.',
+    publicSetting: 'Show reviews on the public page',
+    publicSettingHint: 'The average rating appears next to each service, and reviews are signed with a first name and last initial.',
+    approvalSetting: 'Approve reviews before publishing them',
+    approvalSettingHint: 'Without this, whatever a customer writes goes onto the business page with nobody reading it first.',
+  },
+
   admin: {
     todayTitle: 'Today at the business',
     todayEmpty: 'No appointments for this day.',

@@ -146,6 +146,8 @@ export interface PublicService {
   maxAdvanceDays: number;
   minAdvanceMinutes: number;
   cancellationCutoffMinutes: number;
+  /** Nota media de las valoraciones publicadas, si el negocio las enseña. */
+  rating: { average: number; count: number } | null;
 }
 
 export interface PublicResource {
@@ -197,6 +199,8 @@ export interface PublicOrganization {
     };
     allowGuestBooking: boolean;
     waitlistEnabled: boolean;
+    /** El negocio enseña sus valoraciones en la página pública. */
+    reviewsPublic: boolean;
     imageUrl: string | null;
     icon: string | null;
     color: string | null;

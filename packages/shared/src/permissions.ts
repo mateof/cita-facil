@@ -36,6 +36,7 @@ export const PERMISSIONS = [
   'notification:read',
   'notification:write',
   'notification:send',
+  'review:moderate', // publicar, ocultar y responder valoraciones
   'report:read',
   'settings:read',
   'settings:write',
@@ -76,6 +77,7 @@ const MANAGER_PERMISSIONS: Permission[] = [
   'service:write',
   'payment:read',
   'credit:write',
+  'review:moderate',
   'notification:read',
   'notification:send',
   'report:read',
