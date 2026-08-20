@@ -130,7 +130,7 @@ export function ResourceCalendar({
             loading={guardarUrl.isPending}
             onClick={() => guardarUrl.mutate(externa.trim() || null)}
           >
-            {t('common.save')}
+            {t('admin.resources.calendarSave')}
           </Button>
 
           {resource.calendarUrl && (

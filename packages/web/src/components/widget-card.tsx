@@ -126,7 +126,7 @@ export function WidgetCard({
             )
           }
         >
-          {t('common.save')}
+          {t('admin.integrations.saveOrigins')}
         </Button>
       </div>
     </Card>

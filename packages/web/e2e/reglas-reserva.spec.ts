@@ -162,14 +162,37 @@ test.describe('plazos de reserva y cancelación', () => {
       await request.get(`/api/v1/me/appointments?status=confirmed`, {
         headers: { authorization: `Bearer ${token}` },
       })
-    ).json()) as { items: { id: string }[] };
+    ).json()) as { items: { id: string; serviceId: string }[] };
 
-    test.skip(citas.items.length === 0, 'La clienta no tiene ninguna cita futura');
+    expect(citas.items.length, 'la clienta de ejemplo no tiene ninguna cita futura').toBeGreaterThan(
+      0,
+    );
+
+    /*
+     * El plazo de la organización solo rige sobre los servicios que heredan, y
+     * el de la siembra lleva el suyo propio. Se pone a heredar a propósito: es
+     * la regla que se quiere comprobar, no una casualidad de los datos.
+     */
+    const headers = await cabeceras(request);
+    const servicio = citas.items[0]!.serviceId;
+    const original = (await (
+      await request.get(`/api/v1/organizations/${organizacion}/services/${servicio}`, { headers })
+    ).json()) as { cancellationCutoffMinutes: number | null };
+
+    await request.patch(`/api/v1/organizations/${organizacion}/services/${servicio}`, {
+      headers,
+      data: { cancellationCutoffMinutes: null },
+    });
 
     const respuesta = await request.post(
       `/api/v1/organizations/${organizacion}/appointments/${citas.items[0]!.id}/cancel`,
       { headers: { authorization: `Bearer ${token}` }, data: {} },
     );
+
+    await request.patch(`/api/v1/organizations/${organizacion}/services/${servicio}`, {
+      headers,
+      data: { cancellationCutoffMinutes: original.cancellationCutoffMinutes },
+    });
 
     expect(respuesta.status()).toBe(403);
   });
