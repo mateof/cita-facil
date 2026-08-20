@@ -122,6 +122,11 @@ export const createOrganizationSchema = z.object({
   phone: phoneSchema.optional(),
   taxId: z.string().max(32).optional(),
   settings: organizationSettingsSchema.optional(),
+  /**
+   * Plantilla de alta: deja el catálogo, los recursos y el horario listos para
+   * probar la reserva en el primer minuto.
+   */
+  template: z.string().max(40).optional(),
 }).merge(avatarFieldsSchema);
 export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
 

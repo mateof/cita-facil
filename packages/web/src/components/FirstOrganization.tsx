@@ -5,6 +5,7 @@ import { Building2 } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import { useAuth } from '../stores/auth.ts';
 import { Button, Card, ErrorMessage, Field, Input, Select } from './ui.tsx';
+import { TemplatePicker } from './template-picker.tsx';
 
 /**
  * Primer arranque del panel: todavía no hay ninguna organización.
@@ -24,9 +25,11 @@ export default function FirstOrganization() {
     locale: i18n.language.slice(0, 2),
     currency: 'EUR',
   });
+  const [template, setTemplate] = useState<string | null>(null);
 
   const create = useMutation({
-    mutationFn: () => api.post<{ id: string }>('/organizations', form),
+    mutationFn: () =>
+      api.post<{ id: string }>('/organizations', { ...form, template: template ?? undefined }),
     onSuccess: async (organization) => {
       await reload();
       setActiveOrganization(organization.id);
@@ -87,6 +90,10 @@ export default function FirstOrganization() {
             </Select>
           </Field>
         </div>
+
+        <Field label={t('admin.templates.label')} hint={t('admin.templates.hint')}>
+          <TemplatePicker value={template} onChange={setTemplate} />
+        </Field>
 
         <Button
           fullWidth

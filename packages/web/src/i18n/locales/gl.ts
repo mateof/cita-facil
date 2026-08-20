@@ -832,6 +832,13 @@ export default {
       accepted: 'aceptado',
       noMarketing: 'Non acepta comunicacións comerciais.',
     },
+    templates: {
+      label: 'Tipo de negocio',
+      hint: 'Deixa servizos, recursos e horario postos para poder probar a reserva decontado. Todo se pode cambiar despois.',
+      none: 'Comezar en branco',
+      noneHint: 'Sen servizos nin horario. Configúralos ti.',
+    },
+
     team: {
       title: 'Equipo',
       invite: 'Convidar',

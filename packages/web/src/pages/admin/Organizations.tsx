@@ -19,6 +19,7 @@ import {
 } from '../../components/ui.tsx';
 import { Combobox } from '../../components/combobox.tsx';
 import { AvatarPicker } from '../../components/avatar-picker.tsx';
+import { TemplatePicker } from '../../components/template-picker.tsx';
 
 interface OrganizationRow extends ManageableOrganization {
   timezone: string;
@@ -77,6 +78,7 @@ export default function Organizations() {
   const setActiveOrganization = useAuth((state) => state.setActiveOrganization);
 
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [template, setTemplate] = useState<string | null>(null);
   const [removing, setRemoving] = useState<OrganizationRow | null>(null);
 
   const organizations = useQuery({
@@ -98,6 +100,9 @@ export default function Organizations() {
         imageUrl: input.imageUrl ?? null,
         icon: input.icon ?? null,
         color: input.color ?? null,
+        // La plantilla solo tiene sentido al crear: sobre una organización que
+        // ya trabaja metería servicios que nadie ha pedido.
+        template: input.id ? undefined : (template ?? undefined),
       };
       return input.id
         ? api.patch<OrganizationRow>(`/organizations/${input.id}`, body)
@@ -105,6 +110,7 @@ export default function Organizations() {
     },
     onSuccess: async (organization, input) => {
       setDraft(null);
+      setTemplate(null);
       await reload();
       void queryClient.invalidateQueries({ queryKey: ['organizations'] });
       // Al crear una nueva se pasa a trabajar en ella: es lo que se quiere
@@ -228,7 +234,16 @@ export default function Organizations() {
           </>
         }
       >
-        {draft && <OrganizationForm draft={draft} error={save.error} onChange={setDraft} />}
+        {draft && (
+          <>
+            <OrganizationForm draft={draft} error={save.error} onChange={setDraft} />
+            {!draft.id && (
+              <Field label={t('admin.templates.label')} hint={t('admin.templates.hint')}>
+                <TemplatePicker value={template} onChange={setTemplate} />
+              </Field>
+            )}
+          </>
+        )}
       </Modal>
 
       <RemoveModal

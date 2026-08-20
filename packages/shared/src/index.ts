@@ -4,6 +4,7 @@ export * from './permissions.js';
 export * from './search.js';
 export * from './theme.js';
 export * from './theme-presets.js';
+export * from './templates.js';
 export * from './time.js';
 export * from './schemas/common.js';
 export * from './schemas/avatar.js';

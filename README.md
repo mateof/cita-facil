@@ -131,6 +131,7 @@ ingresos, plantillas de aviso, integraciones, ajustes y copias de seguridad.
 | [Instalación](docs/instalacion.md) | Requisitos, arranque local y con Docker |
 | [Configuración](docs/configuracion.md) | Todas las variables de entorno |
 | [Arquitectura](docs/arquitectura.md) | Cómo está montado y por qué |
+| [Plantillas de alta](docs/plantillas.md) | Tipos de negocio con servicios, horario y recursos ya puestos |
 | [Organizaciones](docs/organizaciones.md) | Varios negocios, páginas de contacto y sobre nosotros |
 | [Base de datos](docs/base-de-datos.md) | Esquema, motores y migraciones |
 | [Autenticación](docs/autenticacion.md) | DNIe, FNMT, Cl@ve, passkeys y 2FA |

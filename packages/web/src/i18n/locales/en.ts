@@ -831,6 +831,13 @@ export default {
       accepted: 'accepted',
       noMarketing: 'Has not opted in to marketing messages.',
     },
+    templates: {
+      label: 'Type of business',
+      hint: 'Sets up services, resources and opening hours so you can try a booking right away. Everything can be changed later.',
+      none: 'Start from scratch',
+      noneHint: 'No services and no opening hours. You set them up.',
+    },
+
     team: {
       title: 'Team',
       invite: 'Invite',

@@ -30,6 +30,7 @@ import { listPages, savePage } from '../modules/catalog/pages.js';
 import { getAuthSettings } from '../modules/settings/access-policy.js';
 import { notify } from '../modules/notifications/service.js';
 import { recordAudit } from '../modules/audit/service.js';
+import { applyTemplate } from '../modules/catalog/templates.js';
 import { idParams, organizationParams } from './helpers.js';
 
 /**
@@ -67,6 +68,23 @@ const organizationRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   app.post(
+    '/:organizationId/apply-template',
+    {
+      schema: {
+        tags: ['catalogo'],
+        summary: 'Aplicar una plantilla de alta',
+        description: 'Solo sobre una organización que todavía no tiene servicios.',
+        params: z.object({ organizationId: z.string().min(1) }),
+        body: z.object({ template: z.string().max(40) }),
+      },
+    },
+    async (request) => {
+      request.requirePermission(request.params.organizationId, 'org:update');
+      return applyTemplate(request.params.organizationId, request.body.template);
+    },
+  );
+
+  app.post(
     '/',
     {
       schema: {
@@ -92,6 +110,15 @@ const organizationRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const organization = await createOrganization(request.body, user.id);
+
+      /*
+       * La plantilla se aplica después de crear y sin tumbar el alta si algo
+       * falla: quedarse sin organización por un servicio de ejemplo que no se
+       * pudo crear sería el peor de los dos males.
+       */
+      if (request.body.template) {
+        await applyTemplate(organization.id, request.body.template).catch(() => undefined);
+      }
       await recordAudit({
         organizationId: organization.id,
         actorId: user.id,
