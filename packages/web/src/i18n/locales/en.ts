@@ -137,6 +137,8 @@ export default {
   },
 
   booking: {
+    alsoBook: 'Anything else in the same visit?',
+    alsoBookHint: 'It all runs back to back, and only the slots where it fits are offered.',
     consentAccept: 'I have read and accept',
     signature: 'Signature',
     signatureHint: 'Type your full name.',
@@ -761,6 +763,7 @@ export default {
       calendarExternal: 'Import busy time from a personal calendar',
       calendarExternalHint:
         'The professional\'s .ics calendar address. Whatever is busy there stops being offered as a free slot.',
+      calendarSave: 'Connect calendar',
       calendarSyncNow: 'Import now',
       calendarSyncedAt: 'Last import: {{date}}',
       types: {
@@ -967,6 +970,7 @@ export default {
       widgetHint:
         'Paste this where you want the booking flow to appear. It fits the width and grows as the customer moves through it.',
       directLink: 'Direct link',
+      saveOrigins: 'Save domains',
       embedOrigins: 'Domains allowed to embed it',
       embedOriginsHint:
         'Comma separated. Empty means any domain, which is the usual choice: the booking page is public anyway.',

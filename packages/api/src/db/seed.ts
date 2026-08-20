@@ -342,6 +342,7 @@ export async function seedDemoData(db: Kysely<Database>): Promise<void> {
 
   /* ------------------------------------------------------------ servicios */
   const serviceCorte = newId();
+  const serviceBarba = newId();
   const serviceSala = newId();
   const serviceBronceado = newId();
   await db
@@ -388,6 +389,59 @@ export async function seedDemoData(db: Kysely<Database>): Promise<void> {
         staff_only: 0,
         custom_fields_json: null,
         sort_order: 0,
+        active: 1,
+        created_at: now,
+        updated_at: now,
+        deleted_at: null,
+      },
+      {
+        // Servicio corto pensado para combinarlo con el corte en la misma
+        // visita: es el caso que estrena la reserva de varios servicios.
+        id: serviceBarba,
+        organization_id: orgId,
+        location_id: locationId,
+        category_id: null,
+        name: 'Arreglo de barba',
+        name_i18n_json: JSON.stringify({
+          es: 'Arreglo de barba',
+          gl: 'Arranxo de barba',
+          en: 'Beard trim',
+        }),
+        description_json: JSON.stringify({
+          es: 'Perfilado y apurado.',
+          gl: 'Perfilado e apurado.',
+          en: 'Shaping and finishing.',
+        }),
+        color: '#0f766e',
+        image_url: null,
+        icon: null,
+        duration_mode: 'fixed',
+        duration_minutes: 15,
+        min_duration_minutes: null,
+        max_duration_minutes: null,
+        duration_step_minutes: null,
+        buffer_before_minutes: 0,
+        buffer_after_minutes: 0,
+        price_mode: 'fixed',
+        price_cents: 900,
+        price_per_minute_cents: null,
+        currency: 'EUR',
+        deposit_cents: 0,
+        payment_required: 0,
+        no_show_fee_cents: -1,
+        requires_credit_pack: 0,
+        capacity: 1,
+        requires_approval: 0,
+        min_advance_minutes: 60,
+        max_advance_days: 60,
+        cancellation_cutoff_minutes: 120,
+        reschedule_cutoff_minutes: 120,
+        allocation_strategy: null,
+        allow_resource_selection: 1,
+        publicly_bookable: 1,
+        staff_only: 0,
+        custom_fields_json: null,
+        sort_order: 1,
         active: 1,
         created_at: now,
         updated_at: now,
@@ -504,6 +558,7 @@ export async function seedDemoData(db: Kysely<Database>): Promise<void> {
     .insertInto('service_resources')
     .values([
       { service_id: serviceCorte, resource_id: resourceCarlos, duration_minutes: null, price_cents: null },
+      { service_id: serviceBarba, resource_id: resourceCarlos, duration_minutes: null, price_cents: null },
       { service_id: serviceSala, resource_id: resourceSala, duration_minutes: null, price_cents: null },
       { service_id: serviceBronceado, resource_id: resourceSala, duration_minutes: null, price_cents: null },
     ])

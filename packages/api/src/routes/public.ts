@@ -302,6 +302,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       return computeAvailability({
         organizationId: request.params.organizationId,
         serviceId: request.query.serviceId,
+        additionalServiceIds: request.query.additionalServiceIds,
         locationId: request.query.locationId,
         resourceId: request.query.resourceId,
         from: request.query.from,
@@ -322,6 +323,12 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
         params: z.object({ organizationId: z.string().min(1) }),
         querystring: z.object({
           serviceId: z.string().min(1),
+          // Igual que en la disponibilidad: el calendario tiene que resaltar
+          // los días donde cabe la visita entera, no solo el primer servicio.
+          additionalServiceIds: z
+            .union([z.string(), z.array(z.string()).max(5)])
+            .transform((value) => (Array.isArray(value) ? value : [value]))
+            .optional(),
           from: isoDateSchema,
           to: isoDateSchema,
           durationMinutes: z.coerce.number().int().min(1).max(1440).optional(),
@@ -333,6 +340,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       const availability = await computeAvailability({
         organizationId: request.params.organizationId,
         serviceId: request.query.serviceId,
+        additionalServiceIds: request.query.additionalServiceIds,
         locationId: request.query.locationId,
         from: request.query.from,
         to: request.query.to,

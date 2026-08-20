@@ -36,6 +36,7 @@ export interface Database {
   time_off: TimeOffTable;
 
   appointments: AppointmentsTable;
+  appointment_services: AppointmentServicesTable;
   appointment_recurrences: AppointmentRecurrencesTable;
   waitlist_entries: WaitlistEntriesTable;
   reviews: ReviewsTable;
@@ -509,6 +510,20 @@ export interface AppointmentsTable {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * Servicios añadidos a una cita. El principal sigue en `appointments.service_id`;
+ * aquí van los demás, con su duración y su precio congelados.
+ */
+export interface AppointmentServicesTable {
+  id: string;
+  appointment_id: string;
+  service_id: string;
+  sort_order: number;
+  duration_minutes: number;
+  price_cents: number;
+  created_at: string;
 }
 
 export interface AppointmentRecurrencesTable {

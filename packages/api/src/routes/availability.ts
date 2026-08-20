@@ -39,6 +39,7 @@ const availabilityRoutes: FastifyPluginAsync = async (fastify) => {
       return computeAvailability({
         organizationId: orgId(request),
         serviceId: query.serviceId,
+        additionalServiceIds: query.additionalServiceIds,
         locationId: query.locationId,
         resourceId: query.resourceId,
         from: query.from,

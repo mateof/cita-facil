@@ -138,6 +138,8 @@ export default {
   },
 
   booking: {
+    alsoBook: '¿Algo más en la misma visita?',
+    alsoBookHint: 'Se hace todo seguido y solo se ofrecen las horas donde cabe entero.',
     consentAccept: 'He leído y acepto',
     signature: 'Firma',
     signatureHint: 'Escribe tu nombre completo.',
@@ -762,6 +764,7 @@ export default {
       calendarExternal: 'Importar ocupación de un calendario personal',
       calendarExternalHint:
         'Dirección .ics del calendario del profesional. Lo que tenga ocupado deja de ofrecerse como hueco libre.',
+      calendarSave: 'Conectar calendario',
       calendarSyncNow: 'Importar ahora',
       calendarSyncedAt: 'Última importación: {{date}}',
       types: {
@@ -968,6 +971,7 @@ export default {
       widgetHint:
         'Pega esto en la página donde quieras que aparezca la reserva. Se adapta al ancho y crece solo según avanza.',
       directLink: 'Enlace directo',
+      saveOrigins: 'Guardar dominios',
       embedOrigins: 'Dominios donde se puede empotrar',
       embedOriginsHint:
         'Separados por comas. En blanco se admite cualquiera, que es lo habitual: la página de reservas es pública igualmente.',

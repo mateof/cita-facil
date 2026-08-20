@@ -188,7 +188,40 @@ export async function createAppointment(
     .executeTakeFirst();
   if (!location) throw new NotFoundError('La sede no existe', 'location_not_found');
 
-  const duration = resolveDuration(service, input.durationMinutes);
+  const baseDuration = resolveDuration(service, input.durationMinutes);
+
+  /*
+   * Servicios de la misma visita. Se cargan aquí porque de ellos dependen la
+   * duración, el precio y qué recursos pueden atenderla, y las tres cosas se
+   * necesitan antes de tocar la agenda.
+   */
+  const extraIds = [...new Set(input.additionalServiceIds ?? [])].filter((id) => id !== service.id);
+  const extras =
+    extraIds.length > 0
+      ? await db()
+          .selectFrom('services')
+          .selectAll()
+          .where('organization_id', '=', organizationId)
+          .where('deleted_at', 'is', null)
+          .where('active', '=', 1)
+          .where('id', 'in', extraIds)
+          .execute()
+      : [];
+
+  if (extras.length !== extraIds.length) {
+    throw new NotFoundError('Alguno de los servicios no existe', 'service_not_found');
+  }
+  if (extras.some((extra) => extra.requires_credit_pack === 1)) {
+    // Un servicio de bono descuenta una sesión suya; mezclarlo con otros en la
+    // misma cita haría que una sola cita consumiera saldo de varios sitios.
+    throw new BadRequestError(
+      'Un servicio de bono no se puede combinar con otros',
+      'service_not_combinable',
+    );
+  }
+
+  const duration =
+    baseDuration + extras.reduce((total, extra) => total + extra.duration_minutes, 0);
   const partySize = input.partySize ?? 1;
   const customerId = resolveCustomerId(input, actor);
 
@@ -238,7 +271,8 @@ export async function createAppointment(
     locationId,
     resourceId: input.resourceId,
     startsAt,
-    durationMinutes: duration,
+    durationMinutes: baseDuration,
+    additionalServiceIds: extraIds,
     partySize,
     ignoreAppointmentId: input.holdId,
     ignoreBookingRules: actor.isStaff === true,
@@ -267,7 +301,9 @@ export async function createAppointment(
     }));
 
   const status: AppointmentStatus = service.requires_approval === 1 && !actor.isStaff ? 'pending' : 'confirmed';
-  const priceCents = priceFor(service, duration, partySize);
+  const priceCents =
+    priceFor(service, baseDuration, partySize) +
+    extras.reduce((total, extra) => total + priceFor(extra, extra.duration_minutes, partySize), 0);
   const id = newId();
   const now = isoNow();
   const usesCredit = service.requires_credit_pack === 1 && customerId !== null;
@@ -403,6 +439,25 @@ export async function createAppointment(
         })
         .execute();
     });
+
+  if (extras.length > 0) {
+    await db()
+      .insertInto('appointment_services')
+      .values(
+        extras.map((extra, indice) => ({
+          id: newId(),
+          appointment_id: id,
+          service_id: extra.id,
+          sort_order: indice + 1,
+          // Congelados: el servicio puede cambiar de tarifa o de duración
+          // después, y esta cita ya se acordó con estos números.
+          duration_minutes: extra.duration_minutes,
+          price_cents: priceFor(extra, extra.duration_minutes, partySize),
+          created_at: now,
+        })),
+      )
+      .execute();
+  }
 
   const appointment = await requireAppointmentDetail(id);
 

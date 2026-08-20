@@ -74,6 +74,7 @@ export default function Book() {
 
   const [step, setStep] = useState<Step>('service');
   const [serviceId, setServiceId] = useState<string | null>(searchParams.get('servicio'));
+  const [extraServiceIds, setExtraServiceIds] = useState<string[]>([]);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
@@ -136,6 +137,8 @@ export default function Book() {
     if (!chosen) return;
 
     setServiceId(id);
+    // Cambiar de servicio principal deja sin sentido lo que se hubiera añadido.
+    setExtraServiceIds([]);
     setDuration(chosen.durationMinutes);
     setLocationId((current) => current ?? chosen.locationId ?? data?.locations[0]?.id ?? null);
     setDate((current) => current || todayIso(data?.organization.timezone));
@@ -219,6 +222,9 @@ export default function Book() {
           locationId={locationId}
           resourceId={resourceId}
           duration={duration ?? service.durationMinutes}
+          allServices={data.services}
+          extraServiceIds={extraServiceIds}
+          onExtrasChange={setExtraServiceIds}
           date={date}
           locale={locale}
           waitlistEnabled={organization.waitlistEnabled}
@@ -255,6 +261,7 @@ export default function Book() {
           onNeedsAccount={() => navigate(`/entrar?volver=${encodeURIComponent(location.pathname)}`)}
           locationId={locationId}
           resourceId={resourceId}
+          extraServices={data.services.filter((item) => extraServiceIds.includes(item.id))}
         />
       )}
 
@@ -539,6 +546,9 @@ function WhenStep({
   date,
   locale,
   waitlistEnabled,
+  allServices,
+  extraServiceIds,
+  onExtrasChange,
   onLocationChange,
   onResourceChange,
   onDateChange,
@@ -555,6 +565,9 @@ function WhenStep({
   date: string;
   locale: string;
   waitlistEnabled: boolean;
+  allServices: PublicService[];
+  extraServiceIds: string[];
+  onExtrasChange: (ids: string[]) => void;
   onLocationChange: (id: string) => void;
   onResourceChange: (id: string | null) => void;
   onDateChange: (date: string) => void;
@@ -572,13 +585,22 @@ function WhenStep({
 
   /* Días con hueco de la semana visible, para resaltarlos en el selector. */
   const calendar = useQuery({
-    queryKey: ['calendar', organizationId, service.id, weekStart, duration, locationId],
+    queryKey: [
+      'calendar',
+      organizationId,
+      service.id,
+      weekStart,
+      duration,
+      locationId,
+      extraServiceIds.join(','),
+    ],
     queryFn: () =>
       api.get<{ days: { date: string; available: boolean; slots: number }[] }>(
         `/public/organizations/${organizationId}/calendar`,
         {
           query: {
             serviceId: service.id,
+            additionalServiceIds: extraServiceIds,
             from: weekStart,
             to: addDaysIso(weekStart, 13),
             durationMinutes: duration,
@@ -589,11 +611,21 @@ function WhenStep({
   });
 
   const availability = useQuery({
-    queryKey: ['availability', organizationId, service.id, date, duration, locationId, resourceId],
+    queryKey: [
+      'availability',
+      organizationId,
+      service.id,
+      date,
+      duration,
+      locationId,
+      resourceId,
+      extraServiceIds.join(','),
+    ],
     queryFn: () =>
       api.get<Availability>(`/public/organizations/${organizationId}/availability`, {
         query: {
           serviceId: service.id,
+          additionalServiceIds: extraServiceIds,
           from: date,
           durationMinutes: duration,
           locationId: locationId ?? undefined,
@@ -606,8 +638,56 @@ function WhenStep({
   const slots = availability.data?.days[0]?.slots ?? [];
   const groups = useMemo(() => groupSlots(slots), [slots]);
 
+  /*
+   * Lo que se puede añadir a la misma visita. Se dejan fuera los que exigen
+   * bono, que descuentan sesión aparte, y los de duración ajustable, que no
+   * tendrían una duración única al sumarse.
+   */
+  const combinables = allServices.filter(
+    (item) =>
+      item.id !== service.id &&
+      !item.requiresCreditPack &&
+      item.durationMode !== 'flexible' &&
+      (!locationId || !item.locationId || item.locationId === locationId),
+  );
+
   return (
     <div className="space-y-5">
+      {combinables.length > 0 && !service.requiresCreditPack && (
+        <Field label={t('booking.alsoBook')} hint={t('booking.alsoBookHint')}>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {combinables.map((item) => {
+              const elegido = extraServiceIds.includes(item.id);
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={elegido}
+                  onClick={() =>
+                    onExtrasChange(
+                      elegido
+                        ? extraServiceIds.filter((id) => id !== item.id)
+                        : [...extraServiceIds, item.id],
+                    )
+                  }
+                  className={clsx(
+                    'flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-sm transition',
+                    elegido
+                      ? 'border-brand bg-brand-soft/40 font-medium'
+                      : 'border-slate-200 hover:border-brand',
+                  )}
+                >
+                  <span className="min-w-0 truncate">{item.name}</span>
+                  <span className="shrink-0 text-xs text-slate-500">
+                    +{formatDuration(item.durationMinutes, locale)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </Field>
+      )}
+
       {locations.length > 1 && (
         <Field label={t('booking.chooseLocation')}>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -903,9 +983,12 @@ function ConfirmStep({
   onGuestChange,
   onDone,
   onNeedsAccount,
+  extraServices,
 }: {
   organization: PublicOrganization['organization'];
   service: PublicService;
+  /** Servicios de la misma visita, además del principal. */
+  extraServices: PublicService[];
   slot: Slot;
   locationName: string;
   resourceName: string | null;
@@ -946,6 +1029,7 @@ function ConfirmStep({
     mutationFn: () =>
       api.post<Appointment>(`/organizations/${organization.id}/appointments`, {
         serviceId: service.id,
+        additionalServiceIds: extraServices.map((item) => item.id),
         locationId: locationId ?? undefined,
         resourceId: resourceId ?? undefined,
         startsAt: slot.startsAt,
@@ -957,7 +1041,7 @@ function ConfirmStep({
           : undefined,
         formResponses: Object.values(formAnswers),
         // Evita duplicar la cita si el botón se pulsa dos veces o hay reintento.
-        idempotencyKey: `${slot.startsAt}-${service.id}-${guest.email || 'auth'}`,
+        idempotencyKey: `${slot.startsAt}-${[service.id, ...extraServices.map((item) => item.id)].join('-')}-${guest.email || 'auth'}`,
       }),
     onSuccess: onDone,
   });
@@ -976,7 +1060,10 @@ function ConfirmStep({
       <Card className="mb-4">
         <h2 className="mb-3 font-semibold">{t('booking.summary')}</h2>
         <dl className="space-y-2 text-sm">
-          <Row label={t('admin.service')} value={service.name} />
+          <Row
+            label={t('admin.service')}
+            value={[service.name, ...extraServices.map((item) => item.name)].join(' + ')}
+          />
           <Row
             label={t('common.date')}
             value={`${formatDate(slot.startsAt, locale, organization.timezone, { dateStyle: 'full' })} · ${formatTime(slot.startsAt, locale, organization.timezone)}`}

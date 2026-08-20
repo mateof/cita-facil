@@ -161,7 +161,10 @@ function AppointmentsTab() {
               </p>
               <p className="text-sm text-slate-500">
                 {formatDateTime(appointment.startsAt, locale, appointment.timezone)} ·{' '}
-                {appointment.serviceName}
+                {/* Con varios servicios se enseñan todos: es una sola visita. */}
+                {(appointment.services ?? [{ name: appointment.serviceName }])
+                  .map((servicio) => servicio.name)
+                  .join(' + ')}
                 {appointment.resourceName && ` · ${appointment.resourceName}`}
               </p>
             </div>

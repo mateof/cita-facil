@@ -258,6 +258,8 @@ export interface Appointment {
   locationAddress: string | null;
   serviceId: string;
   serviceName: string;
+  /** Todos los servicios de la visita, el principal el primero. */
+  services: { id: string; name: string; durationMinutes: number; priceCents: number }[];
   resourceId: string | null;
   resourceName: string | null;
   customerId: string | null;

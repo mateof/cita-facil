@@ -58,6 +58,11 @@ export interface AvailabilityRequest {
   from: string;
   to?: string;
   durationMinutes?: number;
+  /**
+   * Servicios que se hacen en la misma visita. La cita ocupa la suma de todos
+   * y solo la atienden los recursos que sepan hacerlos todos.
+   */
+  additionalServiceIds?: string[];
   partySize?: number;
   /** Rejilla de inicios. Por defecto, la de la organización. */
   granularityMinutes?: number;
@@ -122,6 +127,8 @@ interface ExceptionRow {
 
 interface Context {
   service: ServiceRow;
+  /** Servicios añadidos, en el orden en que se hacen. */
+  extras: ServiceRow[];
   location: LocationRow;
   resources: ResourceRow[];
   /** `true` si el servicio necesita asignar recurso. */
@@ -166,11 +173,63 @@ async function loadContext(request: AvailabilityRequest): Promise<Context> {
 
   if (!location) throw new NotFoundError('La sede no existe', 'location_not_found');
 
+  /*
+   * Servicios añadidos. Se comprueba aquí y no al reservar porque la
+   * disponibilidad tiene que salir ya con la suma: ofrecer un hueco donde solo
+   * cabe el primero es peor que no ofrecer ninguno.
+   */
+  const extraIds = [...new Set(request.additionalServiceIds ?? [])].filter(
+    (id) => id !== service.id,
+  );
+  const extras =
+    extraIds.length > 0
+      ? await db()
+          .selectFrom('services')
+          .selectAll()
+          .where('organization_id', '=', request.organizationId)
+          .where('deleted_at', 'is', null)
+          .where('id', 'in', extraIds)
+          .execute()
+      : [];
+
+  if (extras.length !== extraIds.length) {
+    throw new NotFoundError('Alguno de los servicios no existe', 'service_not_found');
+  }
+  for (const extra of extras) {
+    if (extra.active !== 1) {
+      throw new BadRequestError('Alguno de los servicios no está activo', 'service_inactive');
+    }
+    if (extra.duration_mode === 'flexible') {
+      // La duración ajustable es del servicio principal: dos ajustables en la
+      // misma visita no tendrían una respuesta única.
+      throw new BadRequestError(
+        'Un servicio de duración ajustable no se puede combinar con otros',
+        'service_not_combinable',
+      );
+    }
+  }
+
   const links = await db()
     .selectFrom('service_resources')
     .select(['resource_id'])
     .where('service_id', '=', service.id)
     .execute();
+
+  /*
+   * Con servicios añadidos solo valen los recursos que sepan hacerlos todos:
+   * una cita la atiende una persona de principio a fin.
+   */
+  let allowedResourceIds = links.map((link) => link.resource_id);
+  for (const extra of extras) {
+    const extraLinks = await db()
+      .selectFrom('service_resources')
+      .select(['resource_id'])
+      .where('service_id', '=', extra.id)
+      .execute();
+    if (extraLinks.length === 0) continue;
+    const permitidos = new Set(extraLinks.map((link) => link.resource_id));
+    allowedResourceIds = allowedResourceIds.filter((id) => permitidos.has(id));
+  }
 
   const requiresResource = links.length > 0;
   let resources: ResourceRow[] = [];
@@ -183,11 +242,7 @@ async function loadContext(request: AvailabilityRequest): Promise<Context> {
       .where('location_id', '=', location.id)
       .where('active', '=', 1)
       .where('deleted_at', 'is', null)
-      .where(
-        'id',
-        'in',
-        links.map((link) => link.resource_id),
-      );
+      .where('id', 'in', allowedResourceIds.length > 0 ? allowedResourceIds : ['']);
     if (request.resourceId) query = query.where('id', '=', request.resourceId);
     resources = await query.orderBy('sort_order').execute();
 
@@ -255,6 +310,7 @@ async function loadContext(request: AvailabilityRequest): Promise<Context> {
 
   return {
     service,
+    extras,
     location,
     resources,
     requiresResource,
@@ -413,8 +469,14 @@ export async function computeAvailability(
   const context = await loadContext(request);
   const { service, location } = context;
   const timezone = location.timezone;
-  const duration = resolveDuration(service, request.durationMinutes);
+  const duration =
+    resolveDuration(service, request.durationMinutes) +
+    context.extras.reduce((total, extra) => total + extra.duration_minutes, 0);
   const partySize = request.partySize ?? 1;
+  const extrasDuration = context.extras.reduce(
+    (total, extra) => total + extra.duration_minutes,
+    0,
+  );
   const now = request.now ?? new Date();
 
   const from = request.from;
@@ -577,7 +639,12 @@ export async function computeAvailability(
         durationMinutes: duration,
         resourceIds: availableResources.filter(Boolean),
         remainingCapacity: remaining,
-        priceCents: priceFor(service, duration, partySize),
+        priceCents:
+          priceFor(service, duration - extrasDuration, partySize) +
+          context.extras.reduce(
+            (total, extra) => total + priceFor(extra, extra.duration_minutes, partySize),
+            0,
+          ),
         currency: service.currency,
       });
     }
@@ -748,7 +815,9 @@ export async function isSlotFree(params: {
   locationId?: string;
   resourceId?: string;
   startsAt: string;
+  /** Duración del servicio principal; los añadidos suman por su cuenta. */
   durationMinutes: number;
+  additionalServiceIds?: string[];
   partySize: number;
   ignoreAppointmentId?: string;
   now?: Date;
@@ -781,6 +850,7 @@ export async function isSlotFree(params: {
     from: local.date,
     to: local.date,
     durationMinutes: params.durationMinutes,
+    additionalServiceIds: params.additionalServiceIds,
     partySize: params.partySize,
     now: params.now,
     ignoreBookingRules: params.ignoreBookingRules,

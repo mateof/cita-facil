@@ -23,6 +23,15 @@ export const availabilityQuerySchema = z
     to: isoDateSchema.optional(),
     /** Duración pedida por el cliente en servicios de duración ajustable. */
     durationMinutes: z.coerce.number().int().min(1).max(1440).optional(),
+    /**
+     * Servicios que se hacen en la misma visita, uno detrás de otro. La cita
+     * ocupa la suma de todos y solo se ofrecen los huecos donde cabe entera.
+     * Se admite repetido en la consulta (`?additionalServiceIds=a&...=b`).
+     */
+    additionalServiceIds: z
+      .union([idSchema, z.array(idSchema).max(5)])
+      .transform((value) => (Array.isArray(value) ? value : [value]))
+      .optional(),
     /** Plazas solicitadas en servicios con aforo. */
     partySize: z.coerce.number().int().min(1).max(200).default(1),
     timezone: z.string().max(64).optional(),
@@ -81,6 +90,8 @@ export const createAppointmentSchema = z.object({
   startsAt: z.string().datetime({ offset: true }),
   /** Solo se admite en servicios con duración ajustable. */
   durationMinutes: z.number().int().min(1).max(1440).optional(),
+  /** Servicios adicionales de la misma visita, en el orden en que se hacen. */
+  additionalServiceIds: z.array(idSchema).max(5).optional(),
   partySize: z.number().int().min(1).max(200).default(1),
   notes: z.string().max(2000).optional(),
   /** Campos adicionales definidos por la organización. */

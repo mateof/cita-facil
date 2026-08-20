@@ -17,6 +17,11 @@ export interface AppointmentDetail {
   locationAddress: string | null;
   serviceId: string;
   serviceName: string;
+  /**
+   * Todos los servicios de la visita, el principal el primero. Con uno solo
+   * lleva ese; así quien la lea no tiene que mirar en dos sitios.
+   */
+  services: { id: string; name: string; durationMinutes: number; priceCents: number }[];
   resourceId: string | null;
   resourceName: string | null;
   customerId: string | null;
@@ -134,6 +139,16 @@ export function mapAppointment(row: Row): AppointmentDetail {
     locationAddress: row.location_address,
     serviceId: row.service_id,
     serviceName: row.service_name,
+    // Se rellena después con una consulta aparte: son pocas citas con más de
+    // un servicio y no compensa un `join` en la consulta que lo lee todo.
+    services: [
+      {
+        id: row.service_id,
+        name: row.service_name,
+        durationMinutes: row.duration_minutes,
+        priceCents: row.price_cents,
+      },
+    ],
     resourceId: row.resource_id,
     resourceName: row.resource_name,
     customerId: row.customer_id,
@@ -175,9 +190,65 @@ export function mapAppointment(row: Row): AppointmentDetail {
   };
 }
 
+/**
+ * Añade a cada cita los servicios extra de la visita.
+ *
+ * En una sola consulta para todas: la agenda de un día trae cincuenta citas y
+ * preguntar una por una serían cincuenta viajes para una tabla que casi siempre
+ * está vacía.
+ */
+async function withExtraServices(items: AppointmentDetail[]): Promise<AppointmentDetail[]> {
+  if (items.length === 0) return items;
+
+  const extras = await db()
+    .selectFrom('appointment_services')
+    .innerJoin('services', 'services.id', 'appointment_services.service_id')
+    .select([
+      'appointment_services.appointment_id',
+      'appointment_services.service_id',
+      'appointment_services.duration_minutes',
+      'appointment_services.price_cents',
+      'appointment_services.sort_order',
+      'services.name',
+    ])
+    .where(
+      'appointment_services.appointment_id',
+      'in',
+      items.map((item) => item.id),
+    )
+    .orderBy('appointment_services.sort_order')
+    .execute();
+
+  if (extras.length === 0) return items;
+
+  for (const item of items) {
+    for (const extra of extras.filter((fila) => fila.appointment_id === item.id)) {
+      item.services.push({
+        id: extra.service_id,
+        name: extra.name,
+        durationMinutes: extra.duration_minutes,
+        priceCents: extra.price_cents,
+      });
+    }
+
+    // El principal se queda con lo suyo: su duración es la total menos la de
+    // los adicionales, y su precio, el total menos el de ellos.
+    const adicionales = item.services.slice(1);
+    const primero = item.services[0];
+    if (primero) {
+      primero.durationMinutes -= adicionales.reduce((total, s) => total + s.durationMinutes, 0);
+      primero.priceCents -= adicionales.reduce((total, s) => total + s.priceCents, 0);
+    }
+  }
+
+  return items;
+}
+
 export async function getAppointmentDetail(id: string): Promise<AppointmentDetail | null> {
   const row = await baseQuery().where('appointments.id', '=', id).executeTakeFirst();
-  return row ? mapAppointment(row) : null;
+  if (!row) return null;
+  const [detalle] = await withExtraServices([mapAppointment(row)]);
+  return detalle ?? null;
 }
 
 export async function requireAppointmentDetail(id: string): Promise<AppointmentDetail> {
@@ -270,7 +341,7 @@ export async function listAppointments(filters: ListFilters): Promise<PagedAppoi
     .execute();
 
   return {
-    items: rows.map(mapAppointment),
+    items: await withExtraServices(rows.map(mapAppointment)),
     page: filters.page,
     pageSize: filters.pageSize,
     total,
@@ -311,7 +382,7 @@ export async function listCustomerAppointments(params: {
     .execute();
 
   return {
-    items: rows.map(mapAppointment),
+    items: await withExtraServices(rows.map(mapAppointment)),
     page: params.page,
     pageSize: params.pageSize,
     total,
