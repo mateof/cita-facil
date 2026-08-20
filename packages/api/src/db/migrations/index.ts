@@ -13,6 +13,7 @@ import * as m011 from './011_attendance.js';
 import * as m012 from './012_commissions.js';
 import * as m013 from './013_walk_in_queue.js';
 import * as m014 from './014_forms.js';
+import * as m015 from './015_calendar_sync.js';
 
 /**
  * Las migraciones se registran en un objeto estático en lugar de leerse del
@@ -35,6 +36,7 @@ export const migrations: Record<string, Migration> = {
   '012_commissions': m012,
   '013_walk_in_queue': m013,
   '014_forms': m014,
+  '015_calendar_sync': m015,
 };
 
 export class StaticMigrationProvider implements MigrationProvider {

@@ -752,6 +752,18 @@ export default {
       bookableDirectly: 'O cliente pode escollelo',
       commission: 'Comisión (%)',
       commissionHint: 'O que leva sobre o que cobra a súa axenda. Sae no informe de reparto.',
+      calendar: 'Calendario',
+      calendarSaveFirst: 'Garda o recurso antes de configurar o seu calendario.',
+      calendarFeed: 'Ver esta axenda no móbil',
+      calendarFeedHint:
+        'Enderezo para subscribirse desde Google Calendar, Outlook ou o calendario do iPhone. Quen o teña ve as citas desta axenda, así que compártese con coidado.',
+      calendarCreate: 'Crear o enderezo',
+      calendarRotate: 'Cambialo',
+      calendarExternal: 'Importar ocupación dun calendario persoal',
+      calendarExternalHint:
+        'Enderezo .ics do calendario do profesional. O que teña ocupado deixa de ofrecerse como oco libre.',
+      calendarSyncNow: 'Importar agora',
+      calendarSyncedAt: 'Última importación: {{date}}',
       types: {
         staff: 'Persoal',
         room: 'Sala',

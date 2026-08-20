@@ -391,6 +391,12 @@ export interface ResourcesTable {
   active: number;
   /** Comisión del profesional en puntos básicos: 1000 = 10 %. */
   commission_bp: number;
+  /** Identificador secreto de la dirección `.ics` de esta agenda. */
+  calendar_token: string | null;
+  /** Calendario externo del que se importa la ocupación. */
+  calendar_url: string | null;
+  calendar_synced_at: string | null;
+  calendar_error: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -431,6 +437,9 @@ export interface TimeOffTable {
   starts_at: string;
   ends_at: string;
   reason: string | null;
+  /** `manual` o `calendar`: lo importado se reemplaza en cada sincronización. */
+  source: string;
+  external_uid: string | null;
   created_by: string | null;
   created_at: string;
 }

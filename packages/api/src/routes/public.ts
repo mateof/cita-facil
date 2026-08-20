@@ -31,6 +31,7 @@ import {
   ticketStatus,
 } from '../modules/appointments/queue.js';
 import { pendingForms } from '../modules/catalog/forms.js';
+import { feedForToken } from '../modules/integrations/calendar.js';
 import {
   findByAccessCode,
   type AppointmentDetail,
@@ -441,6 +442,27 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request) => displayBoard(request.params.organizationId, request.query),
+  );
+
+  app.get(
+    '/calendar/:token.ics',
+    {
+      config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
+      schema: {
+        tags: ['publico'],
+        summary: 'Agenda de un profesional en formato iCalendar',
+        description:
+          'Dirección suscribible desde el móvil. El secreto va en la propia URL porque los clientes de calendario no saben iniciar sesión; se anula rotándolo.',
+        params: z.object({ token: z.string().min(10).max(64) }),
+      },
+    },
+    async (request, reply) => {
+      const ics = await feedForToken(request.params.token);
+      return reply
+        .header('content-type', 'text/calendar; charset=utf-8')
+        .header('cache-control', 'no-store')
+        .send(ics);
+    },
   );
 
   app.get(

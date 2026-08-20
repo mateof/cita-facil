@@ -752,6 +752,18 @@ export default {
       bookableDirectly: 'El cliente puede elegirlo',
       commission: 'Comisión (%)',
       commissionHint: 'Lo que se lleva sobre lo que cobra su agenda. Sale en el informe de reparto.',
+      calendar: 'Calendario',
+      calendarSaveFirst: 'Guarda el recurso antes de configurar su calendario.',
+      calendarFeed: 'Ver esta agenda en el móvil',
+      calendarFeedHint:
+        'Dirección para suscribirse desde Google Calendar, Outlook o el calendario del iPhone. Quien la tenga ve las citas de esta agenda, así que se comparte con cuidado.',
+      calendarCreate: 'Crear la dirección',
+      calendarRotate: 'Cambiarla',
+      calendarExternal: 'Importar ocupación de un calendario personal',
+      calendarExternalHint:
+        'Dirección .ics del calendario del profesional. Lo que tenga ocupado deja de ofrecerse como hueco libre.',
+      calendarSyncNow: 'Importar ahora',
+      calendarSyncedAt: 'Última importación: {{date}}',
       types: {
         staff: 'Personal',
         room: 'Sala',

@@ -43,6 +43,12 @@ import {
   updateService,
 } from '../modules/catalog/service.js';
 import { recordAudit } from '../modules/audit/service.js';
+import {
+  calendarFeedUrl,
+  rotateCalendarToken,
+  setExternalCalendar,
+  syncResourceCalendar,
+} from '../modules/integrations/calendar.js';
 import { organizationParams, organizationAndIdParams, orgId } from './helpers.js';
 
 /** Sedes, recursos, servicios, categorías, horarios y ausencias. */
@@ -463,6 +469,62 @@ const catalogRoutes: FastifyPluginAsync = async (fastify) => {
       request.requirePermission(orgId(request), 'schedule:write');
       await deleteTimeOff(orgId(request), request.params.id);
       return { ok: true };
+    },
+  );
+
+  /* ------------------------------------------- Calendario del profesional */
+
+  const resourceParams = z.object({
+    organizationId: z.string().min(1),
+    resourceId: z.string().min(1),
+  });
+
+  app.post(
+    '/resources/:resourceId/calendar-token',
+    {
+      schema: {
+        tags: ['catalogo'],
+        summary: 'Crear o rotar la dirección de calendario de una agenda',
+        description: 'Rotarla anula la anterior, que es lo único que la invalida.',
+        params: resourceParams,
+      },
+    },
+    async (request) => {
+      request.requirePermission(orgId(request), 'resource:write');
+      const token = await rotateCalendarToken(orgId(request), request.params.resourceId);
+      return { token, url: calendarFeedUrl(token) };
+    },
+  );
+
+  app.put(
+    '/resources/:resourceId/calendar',
+    {
+      schema: {
+        tags: ['catalogo'],
+        summary: 'Calendario externo del que importar la ocupación',
+        description: 'Con la dirección vacía se deja de importar y se borra lo importado.',
+        params: resourceParams,
+        body: z.object({ url: z.string().max(500).nullable() }),
+      },
+    },
+    async (request) => {
+      request.requirePermission(orgId(request), 'resource:write');
+      return setExternalCalendar(orgId(request), request.params.resourceId, request.body.url);
+    },
+  );
+
+  app.post(
+    '/resources/:resourceId/calendar/sync',
+    {
+      schema: {
+        tags: ['catalogo'],
+        summary: 'Importar ahora la ocupación del calendario externo',
+        params: resourceParams,
+      },
+    },
+    async (request) => {
+      request.requirePermission(orgId(request), 'resource:write');
+      return syncResourceCalendar(orgId(request), request.params.resourceId);
     },
   );
 };

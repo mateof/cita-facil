@@ -10,6 +10,7 @@ import {
 import { expireWaitlistOffers } from '../modules/appointments/waitlist.js';
 import { runAllSchedules } from '../modules/appointments/schedules.js';
 import { deliverPendingWebhooks } from '../modules/integrations/webhooks.js';
+import { syncAllCalendars } from '../modules/integrations/calendar.js';
 import { purgeExpiredSessions } from '../modules/auth/tokens.js';
 import { purgeAudit } from '../modules/audit/service.js';
 import { createBackup } from '../modules/backups/service.js';
@@ -56,6 +57,13 @@ export function startScheduler(): void {
 
   /* Bloqueos temporales de hueco caducados. */
   schedule('holds', '* * * * *', () => expireHolds());
+
+  /*
+   * Ocupación de los calendarios personales. Cada cuarto de hora es suficiente:
+   * lo que se importa son compromisos de agenda, no minutos sueltos, y pedir
+   * más a menudo carga los servidores de terceros sin ganar nada.
+   */
+  schedule('calendarios', '*/15 * * * *', () => syncAllCalendars());
 
   /* Entregas de webhooks pendientes y reintentos. */
   if (env.WEBHOOKS_ENABLED) {

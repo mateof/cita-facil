@@ -349,6 +349,11 @@ export interface AdminResource {
   type: string;
   /** Comisión del profesional sobre lo que cobra su agenda, en porcentaje. */
   commissionPercent: number;
+  /** Dirección suscribible de la agenda, si ya se ha creado. */
+  calendarFeedUrl: string | null;
+  calendarUrl: string | null;
+  calendarSyncedAt: string | null;
+  calendarError: string | null;
   capacity: number;
   color: string | null;
   imageUrl: string | null;

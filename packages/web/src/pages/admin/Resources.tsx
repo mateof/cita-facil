@@ -19,6 +19,7 @@ import {
   Switch,
 } from '../../components/ui.tsx';
 import { Combobox } from '../../components/combobox.tsx';
+import { ResourceCalendar } from '../../components/resource-calendar.tsx';
 import { AvatarPicker } from '../../components/avatar-picker.tsx';
 import { EntityAvatar } from '../../components/avatar.tsx';
 import { toOptions } from '../../components/pickers.tsx';
@@ -254,6 +255,13 @@ export default function Resources() {
               onChange={(value) => setDraft({ ...draft, active: value })}
               label={t('common.yes')}
             />
+
+            <Field label={t('admin.resources.calendar')} className="mt-4">
+              <ResourceCalendar
+                organizationId={organizationId}
+                resource={resources.data?.find((item) => item.id === draft.id) ?? null}
+              />
+            </Field>
           </>
         )}
       </Modal>

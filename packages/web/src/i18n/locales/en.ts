@@ -751,6 +751,18 @@ export default {
       bookableDirectly: 'Customer can pick it',
       commission: 'Commission (%)',
       commissionHint: 'Their share of what their agenda collects. It shows in the split report.',
+      calendar: 'Calendar',
+      calendarSaveFirst: 'Save the resource before setting up its calendar.',
+      calendarFeed: 'See this agenda on your phone',
+      calendarFeedHint:
+        'Address to subscribe from Google Calendar, Outlook or the iPhone calendar. Anyone with it can see this agenda, so share it carefully.',
+      calendarCreate: 'Create the address',
+      calendarRotate: 'Change it',
+      calendarExternal: 'Import busy time from a personal calendar',
+      calendarExternalHint:
+        'The professional\'s .ics calendar address. Whatever is busy there stops being offered as a free slot.',
+      calendarSyncNow: 'Import now',
+      calendarSyncedAt: 'Last import: {{date}}',
       types: {
         staff: 'Staff',
         room: 'Room',

@@ -10,6 +10,7 @@ import type {
 } from '@cita-facil/shared';
 import { isReservedSlug } from '@cita-facil/shared';
 import { toNullable, toStored } from '../appointments/rules.js';
+import { calendarFeedUrl } from '../integrations/calendar.js';
 import { db } from '../../db/index.js';
 import { newId } from '../../lib/ids.js';
 import { isoNow } from '../../lib/dates.js';
@@ -465,6 +466,12 @@ export interface ResourceView {
   bookableDirectly: boolean;
   /** Comisión del profesional en porcentaje. Se guarda en puntos básicos. */
   commissionPercent: number;
+  /** Dirección suscribible de la agenda, si ya se ha creado. */
+  calendarFeedUrl: string | null;
+  /** Calendario externo del que se importa la ocupación. */
+  calendarUrl: string | null;
+  calendarSyncedAt: string | null;
+  calendarError: string | null;
   sortOrder: number;
   active: boolean;
 }
@@ -484,6 +491,10 @@ function mapResource(row: any): ResourceView {
     icon: row.icon,
     bookableDirectly: row.bookable_directly === 1,
     commissionPercent: (row.commission_bp ?? 0) / 100,
+    calendarFeedUrl: row.calendar_token ? calendarFeedUrl(row.calendar_token) : null,
+    calendarUrl: row.calendar_url ?? null,
+    calendarSyncedAt: row.calendar_synced_at ?? null,
+    calendarError: row.calendar_error ?? null,
     sortOrder: row.sort_order,
     active: row.active === 1,
   };
@@ -516,6 +527,10 @@ export async function createResource(
       icon: input.icon ?? null,
       bookable_directly: input.bookableDirectly === false ? 0 : 1,
       commission_bp: Math.round((input.commissionPercent ?? 0) * 100),
+      calendar_token: null,
+      calendar_url: null,
+      calendar_synced_at: null,
+      calendar_error: null,
       sort_order: input.sortOrder,
       active: input.active === false ? 0 : 1,
       created_at: now,
@@ -1191,6 +1206,8 @@ export async function addTimeOff(
       starts_at: new Date(input.startsAt).toISOString(),
       ends_at: new Date(input.endsAt).toISOString(),
       reason: input.reason ?? null,
+      source: 'manual',
+      external_uid: null,
       created_by: createdBy ?? null,
       created_at: isoNow(),
     })
