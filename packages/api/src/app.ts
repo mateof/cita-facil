@@ -21,6 +21,7 @@ import { redisClient } from './lib/redis.js';
 import authPlugin from './plugins/auth.js';
 import errorHandlerPlugin from './plugins/error-handler.js';
 import { registerRoutes } from './routes/index.js';
+import widgetRoutes, { embedOrigins } from './routes/widget.js';
 
 /**
  * Construcción de la aplicación.
@@ -146,6 +147,41 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   await app.register(registerRoutes, { prefix: '/api/v1' });
+
+  // Sin prefijo: la etiqueta <script> la escribe alguien a mano en su web.
+  await app.register(widgetRoutes);
+
+  /*
+   * La reserva empotrada tiene que poder salir en un marco de otra página, y
+   * las cabeceras de seguridad lo prohíben en todo lo demás. Se relajan solo
+   * para `/embed/...`, y con la lista de dominios que haya puesto el negocio.
+   *
+   * `x-frame-options` se quita porque es la cabecera antigua y no entiende de
+   * listas: dejarla puesta bloquearía el marco por mucho que la política de
+   * seguridad de contenidos lo permita.
+   */
+  app.addHook('onSend', async (request, reply) => {
+    if (!request.url.startsWith('/embed/')) return;
+
+    const slug = request.url.split('/')[2]?.split('?')[0] ?? '';
+    const origins = slug ? await embedOrigins(slug) : [];
+    const permitidos = origins.length > 0 ? origins.join(' ') : '*';
+
+    /*
+     * Helmet escribe sus cabeceras en la respuesta de Node, no en la de
+     * Fastify, así que hay que quitarla de las dos: `removeHeader` de Fastify
+     * no ve lo que ya está puesto en la respuesta cruda.
+     */
+    reply.removeHeader('x-frame-options');
+    reply.raw.removeHeader('X-Frame-Options');
+    const csp = reply.getHeader('content-security-policy');
+    reply.header(
+      'content-security-policy',
+      typeof csp === 'string'
+        ? csp.replace(/frame-ancestors[^;]*/, `frame-ancestors ${permitidos}`)
+        : `frame-ancestors ${permitidos}`,
+    );
+  });
 
   app.get('/health', { schema: { hide: true } }, async () => ({
     status: 'ok',

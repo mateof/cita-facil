@@ -18,6 +18,7 @@ import Profile from './pages/Profile.tsx';
 import Lookup from './pages/Lookup.tsx';
 import OrganizationPage from './pages/OrganizationPage.tsx';
 import QueueDisplay from './pages/QueueDisplay.tsx';
+import Embed from './pages/Embed.tsx';
 
 import Dashboard from './pages/admin/Dashboard.tsx';
 import Agenda from './pages/admin/Agenda.tsx';
@@ -115,6 +116,9 @@ export default function App() {
       {/* Sin el contenedor del portal: es una pantalla para colgar en la
           pared, sin menús ni nada que pulsar por error. */}
       <Route path="/:slug/turnos" element={<QueueDisplay />} />
+
+      {/* La reserva empotrada en la web del negocio, sin cabecera ni menús. */}
+      <Route path="/embed/:slug" element={<Embed />} />
 
       <Route element={<CustomerLayout />}>
         <Route index element={<Home />} />

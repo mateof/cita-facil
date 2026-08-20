@@ -951,6 +951,13 @@ export default {
     },
 
     integrations: {
+      widget: 'Booking on your own site',
+      widgetHint:
+        'Paste this where you want the booking flow to appear. It fits the width and grows as the customer moves through it.',
+      directLink: 'Direct link',
+      embedOrigins: 'Domains allowed to embed it',
+      embedOriginsHint:
+        'Comma separated. Empty means any domain, which is the usual choice: the booking page is public anyway.',
       title: 'Integrations',
       apiKeys: 'API keys',
       newApiKey: 'New key',

@@ -54,6 +54,8 @@ export const RESERVED_SLUGS = [
   'admin',
   'citas',
   'consultar',
+  // La reserva embebida en la web del negocio cuelga de aquí.
+  'embed',
   'entrar',
   // `invitacion` y `pago` todavía no tienen pantalla, pero el API ya manda esas
   // direcciones por correo y como retorno de la pasarela.
@@ -76,6 +78,7 @@ export const RESERVED_SLUGS = [
   'manifest',
   'robots',
   'sw',
+  'widget',
   'workbox',
 ] as const;
 

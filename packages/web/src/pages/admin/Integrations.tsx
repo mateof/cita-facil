@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Copy, DoorOpen, KeyRound, Plus, Trash2, Webhook } from 'lucide-react';
 import { api } from '../../lib/api.ts';
 import { useAuth } from '../../stores/auth.ts';
+import { WidgetCard } from '../../components/widget-card.tsx';
 import {
   Badge,
   Button,
@@ -42,6 +43,8 @@ interface IntegrationStatus {
 export default function Integrations() {
   const { t } = useTranslation();
   const organizationId = useAuth((state) => state.activeOrganizationId);
+  const organizations = useAuth((state) => state.organizations);
+  const slug = organizations.find((item) => item.id === organizationId)?.slug ?? null;
   const queryClient = useQueryClient();
 
   const [keyOpen, setKeyOpen] = useState(false);
@@ -225,6 +228,8 @@ export default function Integrations() {
           ))}
         </ul>
       </Card>
+
+      <WidgetCard organizationId={organizationId} slug={slug} />
 
       {/* Webhooks */}
       <Card>

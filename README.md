@@ -148,6 +148,7 @@ ingresos, plantillas de aviso, integraciones, ajustes y copias de seguridad.
 | [Imágenes e iconos](docs/imagenes.md) | Logotipos, iconos e iniciales de cada entidad |
 | [Notificaciones](docs/notificaciones.md) | Canales, plantillas y recordatorios |
 | [Control de acceso](docs/control-de-acceso.md) | Integración con puertas y tornos |
+| [Widget de reserva](docs/widget.md) | Empotrar la reserva en la web del negocio |
 | [Integraciones](docs/integraciones.md) | MCP, Alexa, Google, webhooks y pagos |
 | [Copias de seguridad](docs/backups.md) | Automatización y restauración |
 | [Despliegue](docs/despliegue.md) | Producción, proxy y escalado |

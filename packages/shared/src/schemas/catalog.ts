@@ -103,6 +103,12 @@ export const organizationSettingsSchema = z
      */
     minAdvanceMinutes: z.number().int().min(0).max(525_600).default(0),
     cancellationCutoffMinutes: z.number().int().min(0).max(525_600).default(0),
+    /**
+     * Dominios donde se puede empotrar la reserva. Vacío, cualquiera: la
+     * página es pública igualmente y exigir configurarlo solo consigue que el
+     * widget no se vea y nadie sepa por qué.
+     */
+    embedOrigins: z.array(z.string().max(200)).max(20).default([]),
     brandColor: colorSchema.default('#2563eb'),
     logoUrl: z.string().url().max(500).nullable().default(null),
     termsUrl: z.string().url().max(500).nullable().default(null),

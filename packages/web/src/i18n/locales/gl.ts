@@ -952,6 +952,13 @@ export default {
     },
 
     integrations: {
+      widget: 'Reserva na túa web',
+      widgetHint:
+        'Pega isto na páxina onde queiras que apareza a reserva. Adáptase ao ancho e medra soa segundo avanza.',
+      directLink: 'Ligazón directa',
+      embedOrigins: 'Dominios onde se pode empotrar',
+      embedOriginsHint:
+        'Separados por comas. En branco admítese calquera, que é o habitual: a páxina de reservas é pública igualmente.',
       title: 'Integracións',
       apiKeys: 'Chaves de API',
       newApiKey: 'Nova chave',
