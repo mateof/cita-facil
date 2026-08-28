@@ -69,7 +69,23 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      # Mismo motivo que en el trabajo de end-to-end: el fichero de bloqueo se
+      # genera en Windows y npm no guarda en él los binarios nativos de otras
+      # plataformas (npm/cli#4828), así que "npm ci" deja fuera
+      # `@node-rs/argon2-linux-x64-gnu` y todo lo que toca contraseñas se cae
+      # con MODULE_NOT_FOUND. Resolver desde cero en Linux los instala.
+      #
+      # El trabajo de tipos y estilo sí sigue con "npm ci": tsc y eslint leen el
+      # código, no lo ejecutan, y no llegan a cargar el módulo nativo.
+      #
+      # La solución de fondo, ya comprobada, es generar el fichero de bloqueo
+      # sin `node_modules` delante (`npm install --package-lock-only` en un
+      # árbol limpio), que sí escribe las variantes de las demás plataformas, y
+      # volver a `npm ci` en los tres trabajos y en el Dockerfile.
+      - name: Instalar dependencias resolviendo para esta plataforma
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit --no-fund
 
       - name: Compilar el paquete compartido
         run: npm run build -w @cita-facil/shared
