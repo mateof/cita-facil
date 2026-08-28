@@ -38,9 +38,9 @@ jobs:
     name: Tipos y estilo
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -62,9 +62,9 @@ jobs:
     name: Pruebas de backend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -84,9 +84,9 @@ jobs:
     # lleva su tiempo; el tope evita que un cuelgue consuma minutos sin fin.
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -122,12 +122,17 @@ jobs:
 
       # Capturas, vídeos y trazas de lo que haya fallado. Sin esto, un fallo que
       # no se reproduce en local deja de ser diagnosticable.
+      #
+      # Una prueba que solo llama al API por `request` no abre navegador y no
+      # deja nada aquí, así que el directorio vacío es normal y no debe teñir
+      # de amarillo un fallo que ya se lee en el registro.
       - name: Guardar el rastro de los fallos
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-fallos
           path: packages/web/e2e/.results/
+          if-no-files-found: ignore
           retention-days: 7
 
   # ---------------------------------------------------------------- publicación
@@ -144,7 +149,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Tres etiquetas por publicación:
       #   - móvil     (latest / latest-dev), la que apunta siempre a lo último;
@@ -156,6 +161,10 @@ jobs:
         run: |
           version=$(node -p "require('./package.json').version")
           instante=$(date -u +'%Y%m%d-%H%M')
+          # La etiqueta `created` de la especificación OCI se lee con formato
+          # RFC 3339; el sello compacto de arriba es para el nombre de la
+          # imagen, no vale aquí.
+          creado=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           if [ "${{ github.ref_name }}" = "main" ]; then
             movil="latest"
             serie="$version"
@@ -170,20 +179,23 @@ jobs:
           {
             echo "version=$version"
             echo "instante=$instante"
+            echo "creado=$creado"
+            echo "imagen=$imagen"
+            echo "movil=$movil"
             echo "lista=$imagen:$movil,$imagen:$serie,$imagen:$serie-$instante"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Entrar en el registro
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Construir y publicar
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
@@ -196,7 +208,47 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.etiquetas.outputs.version }}
-            org.opencontainers.image.created=${{ steps.etiquetas.outputs.instante }}
+            org.opencontainers.image.created=${{ steps.etiquetas.outputs.creado }}
+
+      # La imagen tiene que poder descargarse sin cuenta: es lo que hace que
+      # `docker pull` del README funcione para cualquiera.
+      #
+      # Que sea pública no se decide aquí. La visibilidad es un ajuste del
+      # paquete, no del flujo de trabajo, y el `GITHUB_TOKEN` no puede
+      # cambiarla. Se pone una vez en
+      # https://github.com/users/mateof/packages/container/cita-facil/settings
+      # ("Change visibility" → Public), o mejor "Inherit access from source
+      # repository" para que siga al repositorio.
+      #
+      # Lo que sí se puede hacer aquí es comprobarlo en cada publicación: si
+      # alguien la vuelve a poner privada, o si el paquete se recrea y nace
+      # privado otra vez, este paso lo dice en vez de dejar que se descubra
+      # cuando alguien no consiga descargarla.
+      - name: Comprobar que la imagen es pública
+        env:
+          IMAGEN: ${{ steps.etiquetas.outputs.imagen }}
+          ETIQUETA: ${{ steps.etiquetas.outputs.movil }}
+          DUENO: ${{ github.repository_owner }}
+        run: |
+          repositorio="${IMAGEN#ghcr.io/}"
+          manifiesto="https://ghcr.io/v2/$repositorio/manifests/$ETIQUETA"
+          acepta='application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.docker.distribution.manifest.v2+json'
+
+          # Sin credenciales a propósito: ghcr.io entrega un vale anónimo que
+          # solo sirve para descargar los paquetes públicos.
+          # `curl -s` en vez de `-f`: con `pipefail` un error de HTTP cortaría el
+          # paso con un fallo mudo, y lo que se quiere es el mensaje de abajo.
+          vale=$(curl -s "https://ghcr.io/token?scope=repository:$repositorio:pull&service=ghcr.io" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+          codigo=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $vale" -H "Accept: $acepta" "$manifiesto")
+
+          if [ "$codigo" = "200" ]; then
+            echo "$IMAGEN:$ETIQUETA se descarga sin credenciales."
+            exit 0
+          fi
+
+          echo "::error::$IMAGEN:$ETIQUETA no se puede descargar sin cuenta (HTTP $codigo)."
+          echo "::error::Ponla pública en https://github.com/users/$DUENO/packages/container/${IMAGEN##*/}/settings"
+          exit 1
 
       - name: Resumen
         run: |
