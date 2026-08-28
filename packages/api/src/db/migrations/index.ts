@@ -15,6 +15,7 @@ import * as m013 from './013_walk_in_queue.js';
 import * as m014 from './014_forms.js';
 import * as m015 from './015_calendar_sync.js';
 import * as m016 from './016_multi_service.js';
+import * as m017 from './017_service_start_times.js';
 
 /**
  * Las migraciones se registran en un objeto estático en lugar de leerse del
@@ -39,6 +40,7 @@ export const migrations: Record<string, Migration> = {
   '014_forms': m014,
   '015_calendar_sync': m015,
   '016_multi_service': m016,
+  '017_service_start_times': m017,
 };
 
 export class StaticMigrationProvider implements MigrationProvider {

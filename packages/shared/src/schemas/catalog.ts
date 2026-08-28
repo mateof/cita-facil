@@ -7,6 +7,7 @@ import {
   EXCEPTION_TYPES,
   PRICE_MODES,
   RESOURCE_TYPES,
+  SERVICE_START_MODES,
   WEEKDAYS,
 } from '../enums.js';
 import { avatarFieldsSchema } from './avatar.js';
@@ -191,6 +192,32 @@ export const updateResourceSchema = createResourceSchema.partial();
 /* Servicio (trabajo o tarea reservable)                                       */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Un grupo de horas fijas: en qué días se dan y a qué horas.
+ *
+ * `weekdays` vacío quiere decir todos los días, para no obligar a marcar los
+ * siete cuando la hora es la misma toda la semana. Las horas van en minutos
+ * desde medianoche, como el resto de horas locales del proyecto.
+ */
+export const serviceStartTimesSchema = z.object({
+  weekdays: z
+    .array(
+      z.union([
+        z.literal(WEEKDAYS[0]),
+        z.literal(WEEKDAYS[1]),
+        z.literal(WEEKDAYS[2]),
+        z.literal(WEEKDAYS[3]),
+        z.literal(WEEKDAYS[4]),
+        z.literal(WEEKDAYS[5]),
+        z.literal(WEEKDAYS[6]),
+      ]),
+    )
+    .max(7)
+    .default([]),
+  minutes: z.array(minuteOfDaySchema).min(1).max(48),
+});
+export type ServiceStartTimes = z.infer<typeof serviceStartTimesSchema>;
+
 export const createServiceSchema = z
   .object({
     /** `null` significa que el servicio está disponible en todas las sedes. */
@@ -230,6 +257,18 @@ export const createServiceSchema = z
      */
     requiresCreditPack: z.boolean().default(false),
 
+    /* Cuándo puede empezar la cita */
+    startMode: z.enum(SERVICE_START_MODES).default('inherit'),
+    /** Solo con `startMode: 'interval'`. Cada cuántos minutos se ofrece hora. */
+    startIntervalMinutes: z.number().int().min(1).max(1440).nullish(),
+    /**
+     * Desplaza la rejilla dentro del día. Con intervalo 30 y desfase 15 las
+     * horas caen a y cuarto y a menos cuarto, en vez de en punto y y media.
+     */
+    startOffsetMinutes: z.number().int().min(0).max(1439).default(0),
+    /** Solo con `startMode: 'fixed'`. */
+    startTimes: z.array(serviceStartTimesSchema).max(20).optional(),
+
     /* Aforo y reglas */
     capacity: z.number().int().min(1).max(1000).default(1),
     requiresApproval: z.boolean().default(false),
@@ -255,6 +294,32 @@ export const createServiceSchema = z
   })
   .merge(avatarFieldsSchema)
   .superRefine((value, ctx) => {
+    if (value.startMode === 'interval' && !value.startIntervalMinutes) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['startIntervalMinutes'],
+        message: 'Di cada cuántos minutos se ofrece hora',
+      });
+    }
+    if (
+      value.startMode === 'interval' &&
+      value.startIntervalMinutes &&
+      value.startOffsetMinutes >= value.startIntervalMinutes
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['startOffsetMinutes'],
+        message: 'El desfase tiene que ser menor que el intervalo',
+      });
+    }
+    if (value.startMode === 'fixed' && (value.startTimes ?? []).length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['startTimes'],
+        message: 'Añade al menos una hora fija',
+      });
+    }
+
     if (value.durationMode !== 'flexible') return;
     const min = value.minDurationMinutes ?? value.durationMinutes;
     const max = value.maxDurationMinutes ?? value.durationMinutes;

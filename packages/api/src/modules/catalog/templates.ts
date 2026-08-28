@@ -104,6 +104,8 @@ export async function applyTemplate(
         allowResourceSelection: true,
         publiclyBookable: true,
         staffOnly: false,
+        startMode: 'inherit' as const,
+        startOffsetMinutes: 0,
         sortOrder: indice,
         active: true,
         resourceIds,

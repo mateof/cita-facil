@@ -7,6 +7,7 @@ import type {
   I18nText,
   ScheduleExceptionInput,
   ScheduleRule,
+  ServiceStartTimes,
 } from '@cita-facil/shared';
 import { isReservedSlug } from '@cita-facil/shared';
 import { toNullable, toStored } from '../appointments/rules.js';
@@ -653,6 +654,11 @@ export interface ServiceView {
   allowResourceSelection: boolean;
   publiclyBookable: boolean;
   staffOnly: boolean;
+  /** A qué horas puede empezar la cita. Ver `SERVICE_START_MODES`. */
+  startMode: string;
+  startIntervalMinutes: number | null;
+  startOffsetMinutes: number;
+  startTimes: ServiceStartTimes[];
   customFields: unknown;
   sortOrder: number;
   active: boolean;
@@ -699,6 +705,10 @@ function mapService(row: any, resourceIds: string[] = []): ServiceView {
     allowResourceSelection: row.allow_resource_selection === 1,
     publiclyBookable: row.publicly_bookable === 1,
     staffOnly: row.staff_only === 1,
+    startMode: row.start_mode ?? 'inherit',
+    startIntervalMinutes: row.start_interval_minutes ?? null,
+    startOffsetMinutes: row.start_offset_minutes ?? 0,
+    startTimes: parseJson<ServiceStartTimes[]>(row.start_times_json, []),
     customFields: parseJson<unknown>(row.custom_fields_json, null),
     sortOrder: row.sort_order,
     active: row.active === 1,
@@ -754,6 +764,10 @@ export async function createService(
       allow_resource_selection: input.allowResourceSelection ? 1 : 0,
       publicly_bookable: input.publiclyBookable ? 1 : 0,
       staff_only: input.staffOnly ? 1 : 0,
+      start_mode: input.startMode ?? 'inherit',
+      start_interval_minutes: input.startIntervalMinutes ?? null,
+      start_offset_minutes: input.startOffsetMinutes ?? 0,
+      start_times_json: input.startTimes?.length ? JSON.stringify(input.startTimes) : null,
       custom_fields_json: null,
       sort_order: input.sortOrder,
       active: input.active ? 1 : 0,
@@ -904,6 +918,9 @@ export async function updateService(
     rescheduleCutoffMinutes: 'reschedule_cutoff_minutes',
     allocationStrategy: 'allocation_strategy',
     creditChargeMode: 'credit_charge_mode',
+    startMode: 'start_mode',
+    startIntervalMinutes: 'start_interval_minutes',
+    startOffsetMinutes: 'start_offset_minutes',
     sortOrder: 'sort_order',
   };
 
@@ -929,6 +946,9 @@ export async function updateService(
     if (value !== undefined) update[column] = value ? 1 : 0;
   }
 
+  if (patch.startTimes !== undefined) {
+    update.start_times_json = patch.startTimes?.length ? JSON.stringify(patch.startTimes) : null;
+  }
   if (patch.nameI18n !== undefined) update.name_i18n_json = JSON.stringify(patch.nameI18n);
   if (patch.description !== undefined) update.description_json = JSON.stringify(patch.description);
 

@@ -1,4 +1,5 @@
 /** Tipos de las respuestas del API que consume la interfaz. */
+import type { ServiceStartMode, ServiceStartTimes } from '@cita-facil/shared';
 
 export interface Membership {
   organizationId: string;
@@ -347,6 +348,13 @@ export interface AdminService {
   allowResourceSelection: boolean;
   publiclyBookable: boolean;
   staffOnly: boolean;
+  /** A qué horas puede empezar la cita. Ver `SERVICE_START_MODES`. */
+  startMode: ServiceStartMode;
+  /** Solo con `startMode: 'interval'`. */
+  startIntervalMinutes: number | null;
+  startOffsetMinutes: number;
+  /** Solo con `startMode: 'fixed'`. */
+  startTimes: ServiceStartTimes[];
   sortOrder: number;
   active: boolean;
   resourceIds: string[];

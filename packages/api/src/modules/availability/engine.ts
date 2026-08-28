@@ -5,6 +5,7 @@ import {
   subtractIntervals,
   type AllocationStrategy,
   type Interval,
+  type ServiceStartTimes,
 } from '@cita-facil/shared';
 import { db } from '../../db/index.js';
 import { effectiveRules, type EffectiveRules } from '../appointments/rules.js';
@@ -138,6 +139,8 @@ interface Context {
   timeOff: { resource_id: string | null; location_id: string | null; starts_at: string; ends_at: string }[];
   appointments: AppointmentRow[];
   granularity: number;
+  /** `true` si la rejilla la impuso quien llama y manda sobre la del servicio. */
+  granularityForced: boolean;
   allocationStrategy: AllocationStrategy;
   /** Plazos ya resueltos entre el servicio y su organización. */
   rules: EffectiveRules;
@@ -320,6 +323,10 @@ async function loadContext(request: AvailabilityRequest): Promise<Context> {
     appointments,
     granularity:
       request.granularityMinutes ?? settings.slotGranularityMinutes ?? 15,
+    // Quien pide una rejilla concreta manda sobre la del servicio. Lo usa
+    // `isSlotFree` con granularidad 1 para no rechazar una hora que está libre
+    // pero no cae en la cuadrícula: una cita movida a mano por el personal.
+    granularityForced: request.granularityMinutes !== undefined,
     rules: effectiveRules(service, settings),
     allocationStrategy:
       (service.allocation_strategy as AllocationStrategy | null) ??
@@ -463,6 +470,87 @@ export function priceFor(service: ServiceRow, durationMinutes: number, partySize
   }
 }
 
+/**
+ * Horas a las que puede empezar una cita dentro de un tramo libre.
+ *
+ * Devuelve el minuto de inicio de la **cita**, no el del bloque: cuando el
+ * negocio dice "en punto" se refiere a la hora que ve el cliente, y el margen
+ * previo queda por delante. Por eso se comprueba que el bloque entero quepa,
+ * desde `inicio - margen previo` hasta `fin + margen posterior`.
+ *
+ * Los cuatro modos están en `SERVICE_START_MODES`; el reparto entre ellos vive
+ * aquí y en ningún otro sitio, para que la hora que se ofrece y la que se
+ * acepta al reservar salgan siempre del mismo cálculo.
+ */
+/** Las horas fijas guardadas, o ninguna si el JSON está mal. */
+function horasFijas(service: ServiceRow): ServiceStartTimes[] {
+  if (!service.start_times_json) return [];
+  try {
+    const leido = JSON.parse(service.start_times_json) as ServiceStartTimes[];
+    return Array.isArray(leido) ? leido : [];
+  } catch {
+    return [];
+  }
+}
+
+export function startMinutesIn(params: {
+  interval: Interval;
+  service: ServiceRow;
+  /** Duración de la cita, ya con los servicios añadidos sumados. */
+  duration: number;
+  /** Rejilla de la organización, o la que haya impuesto quien llama. */
+  grid: number;
+  /** `true` si la rejilla la impuso quien llama y manda sobre la del servicio. */
+  gridForced: boolean;
+  weekday: number;
+}): number[] {
+  const { interval, service, duration, grid, gridForced, weekday } = params;
+  const antes = service.buffer_before_minutes;
+  const despues = service.buffer_after_minutes;
+
+  /** El bloque entero, con sus márgenes, tiene que caber en el tramo libre. */
+  const cabe = (inicio: number) =>
+    inicio - antes >= interval.start && inicio + duration + despues <= interval.end;
+
+  const modo = gridForced ? 'inherit' : (service.start_mode ?? 'inherit');
+
+  if (modo === 'fixed') {
+    const grupos = horasFijas(service);
+    const horas = new Set<number>();
+    for (const grupo of grupos) {
+      // Sin días marcados, la hora vale todos los días de la semana.
+      const dias: number[] = grupo.weekdays;
+      if (dias.length > 0 && !dias.includes(weekday)) continue;
+      for (const minuto of grupo.minutes) horas.add(minuto);
+    }
+    return [...horas].filter(cabe).sort((a, b) => a - b);
+  }
+
+  if (modo === 'sequence') {
+    // Encadenadas desde que abre el tramo: la primera nada más abrir y cada
+    // siguiente cuando termina la anterior, márgenes incluidos.
+    const paso = antes + duration + despues;
+    if (paso <= 0) return [];
+    const horas: number[] = [];
+    for (let inicio = interval.start + antes; cabe(inicio); inicio += paso) horas.push(inicio);
+    return horas;
+  }
+
+  const paso =
+    modo === 'interval' ? (service.start_interval_minutes ?? grid) : grid;
+  if (paso <= 0) return [];
+  const desfase = modo === 'interval' ? service.start_offset_minutes % paso : 0;
+
+  // La rejilla se ancla a medianoche, no a la apertura: es lo que hace que "en
+  // punto" salga en punto aunque la sede abra a las 9:30.
+  const minimo = interval.start + antes;
+  const primera = Math.ceil((minimo - desfase) / paso) * paso + desfase;
+
+  const horas: number[] = [];
+  for (let inicio = primera; cabe(inicio); inicio += paso) horas.push(inicio);
+  return horas;
+}
+
 export async function computeAvailability(
   request: AvailabilityRequest,
 ): Promise<AvailabilityResult> {
@@ -585,17 +673,21 @@ export async function computeAvailability(
       freeByResource.set('', subtractIntervals(open, busy));
     }
 
-    /* 4 y 5. Rejilla de inicios, márgenes y aforo. */
+    /* 4 y 5. Horas de inicio, márgenes y aforo. */
     const slots: Slot[] = [];
-    const totalBlock = service.buffer_before_minutes + duration + service.buffer_after_minutes;
-    const grid = context.granularity;
 
     const candidateStarts = new Set<number>();
     for (const intervals of freeByResource.values()) {
       for (const interval of intervals) {
-        const first = Math.ceil(interval.start / grid) * grid;
-        for (let minute = first; minute + totalBlock <= interval.end; minute += grid) {
-          candidateStarts.add(minute + service.buffer_before_minutes);
+        for (const minute of startMinutesIn({
+          interval,
+          service,
+          duration,
+          grid: context.granularity,
+          gridForced: context.granularityForced,
+          weekday,
+        })) {
+          candidateStarts.add(minute);
         }
       }
     }

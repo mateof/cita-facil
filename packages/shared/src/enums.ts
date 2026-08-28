@@ -236,6 +236,22 @@ export type CreditChargeMode = (typeof CREDIT_CHARGE_MODES)[number];
 export const SERVICE_CREDIT_CHARGE_MODES = ['inherit', 'booking', 'completion'] as const;
 export type ServiceCreditChargeMode = (typeof SERVICE_CREDIT_CHARGE_MODES)[number];
 
+/**
+ * A qué horas puede empezar una cita de este servicio.
+ *
+ * - `inherit`: la rejilla de la organización, que es lo de siempre.
+ * - `interval`: rejilla propia pegada al reloj, con desfase opcional. "En
+ *   punto" es 60; "en punto y y media", 30; "a y cuarto y menos cuarto", 30 con
+ *   desfase 15.
+ * - `sequence`: encadenadas desde que abre, sumando la duración entera. Una
+ *   sala que abre a las 9:30 con sesiones de 45 minutos ofrece 9:30, 10:15,
+ *   11:00, sin los huecos muertos que deja una rejilla pegada al reloj.
+ * - `fixed`: solo a horas concretas, opcionalmente por día de la semana. Es lo
+ *   de las clases: martes y jueves a las 12:00 y a las 16:00.
+ */
+export const SERVICE_START_MODES = ['inherit', 'interval', 'sequence', 'fixed'] as const;
+export type ServiceStartMode = (typeof SERVICE_START_MODES)[number];
+
 /** Qué hacer cuando una programación semanal no encuentra hueco. */
 export const SCHEDULE_CONFLICT_MODES = ['skip', 'nearest', 'force'] as const;
 export type ScheduleConflictMode = (typeof SCHEDULE_CONFLICT_MODES)[number];

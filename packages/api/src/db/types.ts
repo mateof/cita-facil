@@ -366,6 +366,13 @@ export interface ServicesTable {
   icon: string | null;
   /** `inherit`, `booking` o `completion`. */
   credit_charge_mode: string | null;
+  /** `inherit`, `interval`, `sequence` o `fixed`. Ver `SERVICE_START_MODES`. */
+  start_mode: string;
+  /** Solo con `start_mode = 'interval'`. */
+  start_interval_minutes: number | null;
+  start_offset_minutes: number;
+  /** Solo con `start_mode = 'fixed'`: `[{ weekdays, minutes }]` en JSON. */
+  start_times_json: string | null;
 }
 
 export interface ServiceResourcesTable {

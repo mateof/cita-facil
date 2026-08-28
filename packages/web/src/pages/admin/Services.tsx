@@ -24,6 +24,7 @@ import {
 import { AvatarPicker } from '../../components/avatar-picker.tsx';
 import { CutoffSelect } from '../../components/cutoff-select.tsx';
 import { EntityAvatar } from '../../components/avatar.tsx';
+import { ServiceStartTimesEditor } from '../../components/service-start-times.tsx';
 import { FormsTab } from './Forms.tsx';
 import { ServiceFormsPicker } from '../../components/service-forms.tsx';
 
@@ -51,6 +52,10 @@ const EMPTY: Draft = {
   maxAdvanceDays: 90,
   cancellationCutoffMinutes: 0,
   rescheduleCutoffMinutes: 0,
+  startMode: 'inherit',
+  startIntervalMinutes: null,
+  startOffsetMinutes: 0,
+  startTimes: [],
   allowResourceSelection: true,
   publiclyBookable: true,
   staffOnly: false,
@@ -367,6 +372,16 @@ function ServiceForm({
       </fieldset>
 
       {/* Precio */}
+      <ServiceStartTimesEditor
+        value={{
+          startMode: draft.startMode ?? 'inherit',
+          startIntervalMinutes: draft.startIntervalMinutes ?? null,
+          startOffsetMinutes: draft.startOffsetMinutes ?? 0,
+          startTimes: draft.startTimes ?? [],
+        }}
+        onChange={set}
+      />
+
       <fieldset className="mb-4 rounded-xl border border-slate-200 p-4">
         <legend className="px-1 text-sm font-semibold">{t('admin.services.priceMode')}</legend>
 
@@ -502,31 +517,41 @@ function ServiceForm({
           </Field>
         </div>
 
+        {/*
+          Cada interruptor lleva su explicación: "Sí" a secas, que es lo que
+          decía el de activo, no dice qué pasa al apagarlo, y sin eso nadie se
+          atreve a tocarlos.
+        */}
         <div className="mt-2 divide-y divide-slate-100">
           <Switch
             checked={draft.requiresApproval ?? false}
             onChange={(value) => set({ requiresApproval: value })}
             label={t('admin.services.requiresApproval')}
+            hint={t('admin.services.requiresApprovalHint')}
           />
           <Switch
             checked={draft.allowResourceSelection ?? true}
             onChange={(value) => set({ allowResourceSelection: value })}
             label={t('admin.services.allowResourceSelection')}
+            hint={t('admin.services.allowResourceSelectionHint')}
           />
           <Switch
             checked={draft.publiclyBookable ?? true}
             onChange={(value) => set({ publiclyBookable: value })}
             label={t('admin.services.publiclyBookable')}
+            hint={t('admin.services.publiclyBookableHint')}
           />
           <Switch
             checked={draft.staffOnly ?? false}
             onChange={(value) => set({ staffOnly: value })}
             label={t('admin.services.staffOnly')}
+            hint={t('admin.services.staffOnlyHint')}
           />
           <Switch
             checked={draft.active ?? true}
             onChange={(value) => set({ active: value })}
-            label={t('common.yes')}
+            label={t('admin.services.active')}
+            hint={t('admin.services.activeHint')}
           />
         </div>
       </fieldset>

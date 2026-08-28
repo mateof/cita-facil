@@ -41,6 +41,42 @@ entra el siguiente bono, sin que nadie tenga que acordarse en el mostrador.
 
 Lo que se debe se consulta en `GET /credit-debts`.
 
+## A qué horas puede empezar cada servicio
+
+La rejilla de inicios (`slotGranularityMinutes`) es de la organización, y una
+sola no llega: en el mismo negocio conviven la consulta que se da a cualquier
+hora libre, el tratamiento que solo empieza en punto y la clase que es martes y
+jueves a las 12:00. Con una rejilla única hay que poner la más fina y confiar en
+que nadie reserve a deshora.
+
+Cada servicio elige su modo en **Servicios → Cuándo empieza la cita**:
+
+| Modo | Qué ofrece | Para qué |
+| --- | --- | --- |
+| **A cualquier hora libre** | La rejilla de la organización | Lo de siempre; es lo que traen los servicios que ya existían |
+| **Cada X minutos** | Rejilla propia pegada al reloj, con desfase opcional | "En punto" es 60; "en punto y y media", 30; "a y cuarto y menos cuarto", 30 con desfase 15 |
+| **Encadenadas** | La primera al abrir y cada siguiente cuando acaba la anterior | Sesiones cuya duración no cuadra con el reloj |
+| **Solo a horas fijas** | Únicamente las horas de la lista, por día de la semana | Clases y grupos: martes y jueves a las 12:00 y a las 16:00 |
+
+Tres cosas que conviene tener claras:
+
+- **La rejilla se ancla a medianoche, no a la apertura.** Es lo que hace que "en
+  punto" salga en punto aunque la sede abra a las 9:30. El modo *encadenadas* es
+  la excepción a propósito: ahí el ancla es la apertura de cada tramo.
+- **Una hora fija no abre nada por su cuenta.** Solo elige entre lo que ya está
+  abierto: si la sede cierra a las 14:00, una hora fija a las 16:00 no aparece.
+  Para abrir la tarde hay que darle horario al servicio o a la sede.
+- **La hora que se alinea es la de la cita, no la del bloque.** Si el servicio
+  tiene margen previo, ese margen queda por delante de la hora que ve el
+  cliente. Antes se alineaba el bloque, así que un servicio con diez minutos de
+  margen ofrecía las 9:10 en vez de las 9:00.
+
+El modo del servicio decide **lo que se ofrece**, no lo que se puede guardar. El
+personal sigue pudiendo mover una cita a cualquier minuto libre desde el panel:
+`isSlotFree` pide la disponibilidad con granularidad de un minuto, y una rejilla
+pedida a mano manda sobre el modo del servicio. Si no, un servicio de horas
+fijas no dejaría correr una cita cinco minutos.
+
 ## Antelación para reservar y plazo para cancelar
 
 Los dos se eligen de una lista legible (una hora, doce horas, un día, dos
