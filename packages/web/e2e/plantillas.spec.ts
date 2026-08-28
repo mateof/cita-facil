@@ -19,6 +19,10 @@ test.describe('plantillas de alta', () => {
     await dialogo.getByLabel('Nombre del negocio').fill(nombre);
     await dialogo.getByRole('button', { name: /Peluquería/ }).click();
     await dialogo.getByRole('button', { name: 'Crear' }).click();
+    // El diálogo se cierra cuando el alta ha terminado. Sin esperar aquí, la
+    // navegación de abajo puede adelantar al cambio de organización activa y
+    // la pantalla enseña el catálogo del negocio anterior.
+    await expect(dialogo).toBeHidden();
 
     // Al crear una organización se pasa a trabajar en ella, así que Servicios
     // enseña ya el catálogo de la plantilla.
@@ -37,6 +41,7 @@ test.describe('plantillas de alta', () => {
     const dialogo = page.getByRole('dialog');
     await dialogo.getByLabel('Nombre del negocio').fill(nombre);
     await dialogo.getByRole('button', { name: 'Crear' }).click();
+    await expect(dialogo).toBeHidden();
 
     await page.goto('/admin/servicios');
 

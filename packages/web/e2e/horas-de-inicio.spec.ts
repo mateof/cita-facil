@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
-import { CUENTAS, ORGANIZACION_SLUG, entrar, organizacionId, tokenDe } from './helpers.ts';
+import { CUENTAS, entrar, organizacionId, tokenDe } from './helpers.ts';
 
 /**
  * A qué horas empieza cada servicio.

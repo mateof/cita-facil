@@ -111,11 +111,16 @@ export default function Organizations() {
     onSuccess: async (organization, input) => {
       setDraft(null);
       setTemplate(null);
-      await reload();
-      void queryClient.invalidateQueries({ queryKey: ['organizations'] });
       // Al crear una nueva se pasa a trabajar en ella: es lo que se quiere
       // hacer a continuación, configurarla.
+      //
+      // Se cambia antes de recargar la sesión, no después. Recargar es una ida
+      // y vuelta al servidor, y quien se fuera a otra pantalla del panel
+      // mientras tanto se la encontraba con la organización anterior: la nueva
+      // todavía no estaba ni en el estado ni en el almacenamiento local.
       if (!input.id) setActiveOrganization(organization.id);
+      await reload();
+      void queryClient.invalidateQueries({ queryKey: ['organizations'] });
     },
   });
 

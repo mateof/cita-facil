@@ -71,7 +71,18 @@ function applySession(set: (partial: Partial<AuthState>) => void, user: SessionU
     slug: membership.organizationSlug,
   }));
   const valid = own.some((organization) => organization.id === stored);
-  const active = valid ? stored : (own[0]?.id ?? null);
+
+  /*
+   * El superadministrador de la instalación entra en organizaciones a las que
+   * no pertenece, y esas no vienen en `memberships`: llegan después, con
+   * `loadOrganizations`. Descartar aquí la guardada por no estar entre sus
+   * pertenencias le devolvía al panel de otro negocio durante ese hueco, y las
+   * pantallas que ya habían pedido datos se quedaban con los del negocio
+   * equivocado. Se conserva y la valida `loadOrganizations` contra la lista
+   * completa, que es quien puede hacerlo.
+   */
+  const conserva = valid || (stored !== null && user.platformRole === 'superadmin');
+  const active = conserva ? stored : (own[0]?.id ?? null);
 
   if (user.locale && i18n.language.slice(0, 2) !== user.locale) {
     void i18n.changeLanguage(user.locale);
