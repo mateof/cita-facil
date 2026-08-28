@@ -17,7 +17,7 @@ import {
   verifyEmailSchema,
 } from '@cita-facil/shared';
 import { env } from '../config/env.js';
-import { BadRequestError, UnauthorizedError } from '../lib/errors.js';
+import { UnauthorizedError } from '../lib/errors.js';
 import {
   activateAccount,
   changePassword,
@@ -53,8 +53,8 @@ import {
   assertLoginMethodEnabled,
   getAuthSettings,
 } from '../modules/settings/access-policy.js';
-import { normalizeCertificateHeader } from '../modules/auth/certificate.js';
 import {
+  certificateFromRequest,
   clearSessionCookies,
   readRefreshToken,
   requestContext,
@@ -196,34 +196,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const verifyHeader = request.headers[env.CERT_VERIFY_HEADER.toLowerCase()];
-      const headerCert = request.headers[env.CERT_HEADER.toLowerCase()];
-
-      let pem: string | null = null;
-
-      if (typeof headerCert === 'string' && headerCert.length > 40) {
-        // Nginx envía `SUCCESS` en `$ssl_client_verify` solo si validó la cadena.
-        if (typeof verifyHeader === 'string' && !/^success/i.test(verifyHeader)) {
-          throw new UnauthorizedError(
-            'El proxy no pudo verificar el certificado presentado',
-            'cert_proxy_rejected',
-          );
-        }
-        pem = normalizeCertificateHeader(headerCert);
-      } else if (env.CERT_AUTH_ALLOW_BODY && request.body?.certificatePem) {
-        pem = request.body.certificatePem;
-      }
-
-      if (!pem) {
-        // El certificado lo pide el servidor en el apretón de manos TLS, así
-        // que por HTTP nunca llega ninguno: el error casi siempre es que falta
-        // el proxy de TLS mutuo por delante, no que la persona hiciera algo mal.
-        throw new BadRequestError(
-          'No se ha recibido ningún certificado de cliente. Este acceso necesita HTTPS con el proxy de TLS mutuo por delante; ver docs/autenticacion.md',
-          'cert_missing',
-        );
-      }
-
+      const pem = certificateFromRequest(request, request.body);
       const result = await loginWithCertificate(pem, requestContext(request));
       setSessionCookies(reply, result);
       return reply.send(sessionPayload(result));

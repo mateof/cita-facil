@@ -1,6 +1,8 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { env } from '../config/env.js';
+import { BadRequestError, UnauthorizedError } from '../lib/errors.js';
+import { normalizeCertificateHeader } from '../modules/auth/certificate.js';
 import type { AuthenticatedResult, RequestContext } from '../modules/auth/service.js';
 
 /** Parámetro de ruta común a casi todos los endpoints del panel. */
@@ -22,6 +24,44 @@ export function requestContext(request: FastifyRequest): RequestContext {
     locale: request.locale,
     trustedDeviceToken: (request.cookies as Record<string, string> | undefined)?.cf_trusted ?? null,
   };
+}
+
+/**
+ * El certificado de cliente que haya presentado quien llama.
+ *
+ * Lo pide el servidor durante el apretón de manos TLS y lo reenvía el proxy en
+ * la cabecera de `CERT_HEADER`, así que la aplicación nunca lo ve por sí misma.
+ * Está aquí, y no en cada ruta, porque lo necesitan tanto entrar con DNIe como
+ * vincularlo a una cuenta ya iniciada, y la comprobación de que el proxy validó
+ * la cadena no puede quedarse en solo uno de los dos sitios.
+ */
+export function certificateFromRequest(
+  request: FastifyRequest,
+  body?: { certificatePem?: string } | null,
+): string {
+  const verifyHeader = request.headers[env.CERT_VERIFY_HEADER.toLowerCase()];
+  const headerCert = request.headers[env.CERT_HEADER.toLowerCase()];
+
+  if (typeof headerCert === 'string' && headerCert.length > 40) {
+    // Nginx envía `SUCCESS` en `$ssl_client_verify` solo si validó la cadena.
+    if (typeof verifyHeader === 'string' && !/^success/i.test(verifyHeader)) {
+      throw new UnauthorizedError(
+        'El proxy no pudo verificar el certificado presentado',
+        'cert_proxy_rejected',
+      );
+    }
+    return normalizeCertificateHeader(headerCert);
+  }
+
+  if (env.CERT_AUTH_ALLOW_BODY && body?.certificatePem) return body.certificatePem;
+
+  // El certificado lo pide el servidor en el apretón de manos TLS, así que por
+  // HTTP nunca llega ninguno: el error casi siempre es que falta el proxy de
+  // TLS mutuo por delante, no que la persona hiciera algo mal.
+  throw new BadRequestError(
+    'No se ha recibido ningún certificado de cliente. Este acceso necesita HTTPS con el proxy de TLS mutuo por delante; ver docs/autenticacion.md',
+    'cert_missing',
+  );
 }
 
 /** `true` si quien hace la petición es personal de la organización. */

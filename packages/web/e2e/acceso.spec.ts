@@ -29,6 +29,37 @@ test.describe('acceso', () => {
     await expect(page.getByText(/necesita HTTPS/i)).toBeVisible();
   });
 
+  /**
+   * El DNI no se escribe en el perfil, se vincula presentando el certificado.
+   * Un campo de texto libre dejaría poner el documento de otra persona y, como
+   * el acceso por certificado busca cuenta por NIF, quedarse con su acceso.
+   */
+  test('el perfil ofrece vincular el DNIe en vez de escribir el documento', async ({ page }) => {
+    await entrar(page, CUENTAS.cliente);
+    await page.goto('/perfil');
+
+    const principal = page.getByRole('main');
+    await expect(principal.getByText('DNI o NIE')).toBeVisible();
+    await expect(principal.getByRole('button', { name: 'Vincular DNIe o certificado' })).toBeVisible();
+    // No hay ningún campo donde teclearlo.
+    await expect(principal.getByLabel('DNI o NIE')).toHaveCount(0);
+  });
+
+  test('sin HTTPS, vincular el DNIe se ofrece pero no se puede usar', async ({ page }) => {
+    await entrar(page, CUENTAS.cliente);
+    await page.goto('/perfil');
+
+    await expect(
+      page.getByRole('main').getByRole('button', { name: 'Vincular DNIe o certificado' }),
+    ).toBeDisabled();
+  });
+
+  test('vincular el DNIe exige sesión iniciada', async ({ request }) => {
+    const respuesta = await request.post('/api/v1/me/identities/certificate');
+
+    expect(respuesta.status()).toBe(401);
+  });
+
   test('entra con correo y contraseña', async ({ page }) => {
     await entrar(page, CUENTAS.cliente);
     await expect(page.getByRole('heading', { name: 'Mis citas' })).toBeVisible();

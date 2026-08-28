@@ -183,6 +183,27 @@ lugar de duplicarla.
 Una sesión abierta con certificado se considera de doble factor: el PIN del
 DNIe ya es el segundo factor.
 
+### Vincular el documento a una cuenta que ya existe
+
+Quien ya entra con correo y contraseña puede vincular su DNIe desde
+**Perfil → Datos personales → Vincular DNIe o certificado**, y a partir de ahí
+entrar con la tarjeta cae en esa misma cuenta en vez de crear otra. Va contra
+`POST /api/v1/me/identities/certificate`, que necesita sesión iniciada y lee el
+certificado de la misma cabecera que el acceso, así que también necesita el
+proxy de TLS mutuo por delante.
+
+**El documento no se escribe a mano, se demuestra.** Es la razón de que el
+perfil no tenga un campo de texto para el DNI: el acceso por certificado busca
+cuenta por NIF, así que un campo libre permitiría poner el documento de otra
+persona y que esa persona, al entrar con su DNIe, aterrizase en la cuenta del
+impostor. Vinculando el certificado el documento llega probado.
+
+Se rechaza si el documento ya está en otra cuenta (`nif_taken`) y si esta cuenta
+llevaba otro distinto (`nif_mismatch`): un DNI no cambia, y dos seguidos
+significan que hay dos personas de por medio. Las reglas están en
+`linkVerifiedCertificate` y tienen pruebas en
+`packages/api/test/certificate-link.test.ts`.
+
 ### Desarrollo sin proxy
 
 ```

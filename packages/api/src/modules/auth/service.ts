@@ -779,6 +779,73 @@ export async function loginWithCertificate(
   return issueSession(user, 'certificate', true, context);
 }
 
+/**
+ * Vincula un DNIe o certificado a la cuenta que ya tiene la sesión abierta.
+ *
+ * Es la única forma de que el documento llegue a una cuenta, y a propósito. El
+ * acceso por certificado busca cuenta por NIF, así que si el documento pudiera
+ * escribirse a mano en el perfil bastaría con poner el DNI de otra persona para
+ * que, cuando esa persona entrara con su DNIe, aterrizase en la cuenta del
+ * impostor. Aquí el documento no se declara: se demuestra.
+ *
+ * Se rechaza si el documento ya está en otra cuenta, y también si esta cuenta
+ * llevaba otro distinto: un DNI no cambia, y dos seguidos significan que hay
+ * dos personas de por medio.
+ */
+export async function linkCertificateToUser(user: UserRow, pem: string): Promise<UserRow> {
+  await assertLoginMethodEnabled('certificate');
+  return linkVerifiedCertificate(user, await verifyClientCertificate(pem));
+}
+
+/**
+ * Las reglas del vínculo, ya con el certificado comprobado.
+ *
+ * Va aparte para poder probarlas: montar una autoridad de certificación en las
+ * pruebas solo para llegar hasta aquí escondería justo lo que importa, que es a
+ * quién se le deja quedarse con qué documento.
+ */
+export async function linkVerifiedCertificate(
+  user: UserRow,
+  identity: CertificateIdentity,
+): Promise<UserRow> {
+  const byIdentity = await findUserByIdentity('certificate', identity.nif);
+  if (byIdentity && byIdentity.id !== user.id) {
+    throw new ConflictError('Ese documento ya está vinculado a otra cuenta', 'nif_taken');
+  }
+
+  const byNif = await findUserByNif(identity.nif);
+  if (byNif && byNif.id !== user.id) {
+    throw new ConflictError('Ya existe una cuenta con ese documento', 'nif_taken');
+  }
+
+  if (user.nif && user.nif !== identity.nif) {
+    throw new ConflictError(
+      'Esta cuenta ya tiene otro documento vinculado',
+      'nif_mismatch',
+    );
+  }
+
+  if (user.nif !== identity.nif) {
+    await db()
+      .updateTable('users')
+      .set({ nif: identity.nif, nif_key: identity.nif, updated_at: isoNow() })
+      .where('id', '=', user.id)
+      .execute();
+  }
+
+  await linkIdentity({
+    userId: user.id,
+    provider: 'certificate',
+    subject: identity.nif,
+    issuer: identity.issuer,
+    metadata: { serialNumber: identity.serialNumber, fingerprint: identity.fingerprint },
+  });
+
+  logger.info({ userId: user.id, issuer: identity.issuer }, 'Certificado vinculado al perfil');
+
+  return { ...user, nif: identity.nif, nif_key: identity.nif };
+}
+
 async function findOrProvisionCertificateUser(
   identity: CertificateIdentity,
   context: RequestContext,

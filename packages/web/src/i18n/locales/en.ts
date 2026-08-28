@@ -272,6 +272,13 @@ export default {
   },
 
   profile: {
+    document: 'National ID',
+    documentHint:
+      'Link it with your certificate and you will be able to sign in with your ID card without creating another account.',
+    documentVerified: 'Verified with your ID card or certificate. It cannot be changed by hand.',
+    linkCertificate: 'Link ID card or certificate',
+    linkCertificateHelp:
+      'You need the reader and the PIN. The document comes from the certificate; it is not typed in.',
     title: 'My profile',
     personalData: 'Personal details',
     security: 'Security',

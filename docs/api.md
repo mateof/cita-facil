@@ -207,6 +207,7 @@ GET|PUT   /me/notification-preferences
 GET|PUT   /me/reminder-rules
 GET|DELETE /me/sessions[/:id]
 GET|DELETE /me/passkeys[/:id]
+POST      /me/identities/certificate   Vincular DNIe o certificado a la cuenta
 POST      /me/push/devices
 GET       /me/export             Descarga de datos personales
 DELETE    /me                    Baja de la cuenta

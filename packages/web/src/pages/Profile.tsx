@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { startRegistration } from '@simplewebauthn/browser';
-import { Fingerprint, Monitor, Plus, Send, ShieldCheck, Trash2 } from 'lucide-react';
+import { Fingerprint, IdCard, Monitor, Plus, Send, ShieldCheck, Trash2 } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import { useAuth } from '../stores/auth.ts';
 import { formatDateTime, formatLeadTime } from '../lib/format.ts';
@@ -100,6 +100,8 @@ function PersonalTab() {
         )}
       </Field>
 
+      <DocumentField />
+
       <Field label={t('auth.phone')}>
         <Input
           type="tel"
@@ -136,6 +138,71 @@ function PersonalTab() {
         {t('common.save')}
       </Button>
     </Card>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+
+/**
+ * El DNI de la cuenta, que no se escribe: se demuestra con el certificado.
+ *
+ * El acceso por DNIe busca cuenta por documento, así que un campo de texto
+ * libre dejaría poner el DNI de otra persona y quedarse con su acceso cuando
+ * esa persona entrara con su tarjeta. Vinculando el certificado, en cambio, el
+ * documento llega probado, y a partir de ahí entrar con DNIe encuentra esta
+ * cuenta en vez de crear una nueva.
+ */
+function DocumentField() {
+  const { t } = useTranslation();
+  const user = useAuth((state) => state.user);
+  const reload = useAuth((state) => state.reload);
+
+  /*
+   * El certificado no lo pide la aplicación, lo pide el servidor durante el
+   * apretón de manos TLS. Sin HTTPS el navegador nunca llega a preguntar por
+   * él, así que pulsar solo puede acabar en "no se ha recibido ningún
+   * certificado". Misma regla que en la pantalla de acceso.
+   */
+  const posible = window.location.protocol === 'https:';
+
+  const vincular = useMutation({
+    mutationFn: () => api.post('/me/identities/certificate'),
+    onSuccess: () => reload(),
+  });
+
+  if (user?.nif) {
+    return (
+      <Field label={t('profile.document')} hint={t('profile.documentVerified')}>
+        <Input value={user.nif} disabled />
+      </Field>
+    );
+  }
+
+  /*
+   * Sin documento no hay campo que rellenar, así que tampoco `Field`: lo que
+   * hay es una acción. `Field` además etiqueta clonando a su único hijo, y aquí
+   * son varios.
+   */
+  return (
+    <div className="mb-4">
+      <span className="mb-1.5 block text-sm font-medium text-slate-700">
+        {t('profile.document')}
+      </span>
+      <p className="mb-2 text-xs text-slate-500">{t('profile.documentHint')}</p>
+      <ErrorMessage error={vincular.error} />
+      <Button
+        variant="secondary"
+        disabled={!posible}
+        loading={vincular.isPending}
+        onClick={() => vincular.mutate()}
+        icon={<IdCard className="size-4" />}
+      >
+        {t('profile.linkCertificate')}
+      </Button>
+      <p className="mt-1 text-xs text-slate-500">
+        {posible ? t('profile.linkCertificateHelp') : t('auth.certificateNeedsHttps')}
+      </p>
+    </div>
   );
 }
 

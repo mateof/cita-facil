@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import {
+  certificateLoginSchema,
   colorSchema,
   iconNameSchema,
   imageUrlSchema,
@@ -19,11 +20,12 @@ import { newId, shortCode } from '../lib/ids.js';
 import { NotFoundError } from '../lib/errors.js';
 import { toSessionUser } from '../modules/users/repository.js';
 import { deletePasskey, listPasskeys } from '../modules/auth/passkeys.js';
+import { linkCertificateToUser } from '../modules/auth/service.js';
 import { revokeAllSessions, revokeSession } from '../modules/auth/tokens.js';
 import { listCustomerAppointments } from '../modules/appointments/queries.js';
 import { webPushPublicKey } from '../modules/notifications/channels/push.js';
 import { createChallenge } from '../modules/auth/challenges.js';
-import { idParams } from './helpers.js';
+import { certificateFromRequest, idParams } from './helpers.js';
 
 /**
  * Perfil del usuario: sus datos, sus dispositivos, sus preferencias de aviso y
@@ -150,6 +152,34 @@ const meRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.requireUser();
       await deletePasskey(user.id, request.params.id);
       return { ok: true };
+    },
+  );
+
+  /* ------------------------------------------------- DNIe y certificados */
+
+  /**
+   * Vincular el DNIe o el certificado a esta cuenta.
+   *
+   * El documento no se escribe en el perfil, se demuestra: el acceso por
+   * certificado busca cuenta por NIF, y un campo de texto libre permitiría
+   * poner el DNI de otra persona para quedarse con su acceso. Ver
+   * `linkCertificateToUser`.
+   */
+  app.post(
+    '/identities/certificate',
+    {
+      schema: {
+        tags: ['perfil'],
+        summary: 'Vincular DNI electrónico o certificado a la cuenta',
+        description:
+          'El certificado lo aporta el proxy inverso en la cabecera de CERT_HEADER, igual que al entrar. Escribe en la cuenta el documento que venga en él.',
+        body: certificateLoginSchema.nullish(),
+      },
+    },
+    async (request) => {
+      const user = request.requireUser();
+      const pem = certificateFromRequest(request, request.body);
+      return toSessionUser(await linkCertificateToUser(user, pem));
     },
   );
 

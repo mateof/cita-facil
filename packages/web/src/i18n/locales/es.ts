@@ -273,6 +273,13 @@ export default {
   },
 
   profile: {
+    document: 'DNI o NIE',
+    documentHint:
+      'Vincúlalo con tu certificado y podrás entrar con el DNIe sin crear otra cuenta.',
+    documentVerified: 'Verificado con tu DNIe o certificado. No se puede cambiar a mano.',
+    linkCertificate: 'Vincular DNIe o certificado',
+    linkCertificateHelp:
+      'Hacen falta el lector y el PIN. El documento se toma del certificado, no se escribe.',
     title: 'Mi perfil',
     personalData: 'Datos personales',
     security: 'Seguridad',
