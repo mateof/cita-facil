@@ -181,6 +181,22 @@ export interface OrganizationPage {
   updatedAt: string | null;
 }
 
+/**
+ * Un establecimiento tal como lo devuelve el directorio.
+ *
+ * Es lo mínimo para pintarlo en una lista o en un selector. Sin sesión, el
+ * directorio solo responde en la instalación de un único negocio.
+ */
+export interface OrganizationSummary {
+  id: string;
+  slug: string;
+  name: string;
+  timezone: string;
+  imageUrl: string | null;
+  icon: string | null;
+  color: string | null;
+}
+
 export interface PublicOrganization {
   organization: {
     id: string;

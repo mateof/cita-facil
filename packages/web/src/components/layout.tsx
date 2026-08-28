@@ -40,6 +40,7 @@ import { useOrganizationTheme } from './theme.tsx';
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from '../i18n/index.ts';
 import FirstOrganization from './FirstOrganization.tsx';
 import { HeaderBrand } from './header-brand.tsx';
+import { OrganizationSwitcher } from './organization-switcher.tsx';
 
 /** Selector de idioma. Presente en todas las pantallas, también sin sesión. */
 export function LanguageSwitcher({ compact }: { compact?: boolean }) {
@@ -122,7 +123,12 @@ export function CustomerLayout() {
     <div className="flex min-h-full flex-col">
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-          <HeaderBrand />
+          <div className="flex min-w-0 items-center gap-1">
+            <HeaderBrand />
+            {/* Solo aparece con sesión y con más de un negocio en la
+                instalación; en la normal, de uno solo, no se ve nunca. */}
+            <OrganizationSwitcher />
+          </div>
 
           <nav className="hidden items-center gap-1 sm:flex">
             {items.map((item) => (

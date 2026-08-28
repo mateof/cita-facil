@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { CUENTAS, entrar, organizacionId, tokenDe } from './helpers.ts';
+import { CUENTAS, ORGANIZACION_SLUG, entrar, organizacionId, tokenDe } from './helpers.ts';
 
 /**
  * Alta de organizaciones desde el panel.
@@ -101,6 +101,43 @@ test.describe('organizaciones', () => {
     const negocios = (await conSesion.json()) as { name: string }[];
     expect(negocios.length).toBeGreaterThan(1);
     expect(negocios.map((negocio) => negocio.name)).toContain(nombre);
+  });
+
+  /**
+   * "Reservar" lleva al negocio en curso, no a la portada, así que con varios
+   * negocios hace falta una forma de cambiar de establecimiento sin escribir la
+   * dirección a mano. El selector solo se pinta con sesión y con más de uno.
+   */
+  test('con varios negocios, el portal deja cambiar de establecimiento', async ({
+    page,
+    request,
+  }) => {
+    const nombre = `${PREFIJO} ${Date.now().toString().slice(-5)}`;
+
+    await page.goto('/admin/organizaciones');
+    await page.getByRole('button', { name: 'Nueva organización' }).click();
+    await page.getByLabel('Nombre del negocio').fill(nombre);
+    await page.getByRole('button', { name: 'Crear' }).click();
+    await expect(page.getByRole('main').getByText(nombre)).toBeVisible();
+
+    // La dirección se calcula del nombre; se pregunta en vez de adivinarla.
+    const token = await tokenDe(request, CUENTAS.admin);
+    const todas = (await (
+      await request.get('/api/v1/organizations', {
+        headers: { authorization: `Bearer ${token}` },
+      })
+    ).json()) as { name: string; slug: string }[];
+    const creada = todas.find((organizacion) => organizacion.name === nombre);
+    expect(creada, 'la organización recién creada no aparece en el listado').toBeTruthy();
+
+    await page.goto(`/${ORGANIZACION_SLUG}`);
+    await page.getByRole('button', { name: 'Cambiar de establecimiento' }).click();
+
+    const dialogo = page.getByRole('dialog');
+    await dialogo.getByLabel('Establecimiento').fill(nombre);
+    await dialogo.getByRole('option', { name: new RegExp(nombre) }).click();
+
+    await expect(page).toHaveURL(new RegExp(`/${creada!.slug}$`));
   });
 
   test('dar de baja una organización la quita del panel', async ({ page }) => {

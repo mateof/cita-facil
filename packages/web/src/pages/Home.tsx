@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { CalendarPlus, MapPin, Search, Store } from 'lucide-react';
 import { api } from '../lib/api.ts';
+import type { OrganizationSummary } from '../lib/types.ts';
 import { useAuth } from '../stores/auth.ts';
 import {
   forgetOrganization,
@@ -11,16 +12,6 @@ import {
 } from '../stores/organization-context.ts';
 import { EntityAvatar } from '../components/avatar.tsx';
 import { Card, EmptyState, LoadingBlock, PageHeader } from '../components/ui.tsx';
-
-interface OrganizationSummary {
-  id: string;
-  slug: string;
-  name: string;
-  timezone: string;
-  imageUrl: string | null;
-  icon: string | null;
-  color: string | null;
-}
 
 /**
  * Punto de entrada.

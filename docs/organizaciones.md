@@ -140,6 +140,14 @@ portada es de la instalación y pasar por ella borraba el contexto, así que ir 
 cliente con el aspecto genérico. El contexto solo se olvida cuando la portada
 enseña de verdad el directorio.
 
+Como "Reservar" ya no lleva a la portada, quien reserva en más de un negocio
+necesita otra salida, y es el **selector de establecimiento** de la cabecera
+(`web/src/components/organization-switcher.tsx`). Se pinta al lado de la marca,
+y casi nunca: hace falta sesión iniciada, porque el directorio no se sirve sin
+ella, y más de un negocio activo. En la instalación normal, de uno solo, no se
+ve nunca. Elegir uno lleva a su página de reservas, que es la dirección que
+vuelve a fijar el contexto con su marca y su tema.
+
 ## Endpoints
 
 | Método y ruta | Quién | Qué hace |

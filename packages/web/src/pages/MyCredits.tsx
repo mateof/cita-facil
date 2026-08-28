@@ -5,7 +5,12 @@ import { Ticket } from 'lucide-react';
 import { api } from '../lib/api.ts';
 import { useRememberedOrganization } from '../stores/organization-context.ts';
 import { formatDate, formatMoney } from '../lib/format.ts';
-import type { CreditBalance, CreditPack, CreditWallet } from '../lib/types.ts';
+import type {
+  CreditBalance,
+  CreditPack,
+  CreditWallet,
+  OrganizationSummary,
+} from '../lib/types.ts';
 import {
   Badge,
   Button,
@@ -16,12 +21,6 @@ import {
   PageHeader,
   Select,
 } from '../components/ui.tsx';
-
-interface OrganizationSummary {
-  id: string;
-  slug: string;
-  name: string;
-}
 
 /**
  * Bonos del cliente: lo que le queda y lo que puede comprar.

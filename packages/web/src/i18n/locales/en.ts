@@ -141,6 +141,9 @@ export default {
     needLink: 'Book at your business',
     needLinkHint:
       'Open the link the business gave you (or its QR code) to book. If you already have an appointment, you can look it up with its code.',
+    business: 'Business',
+    switch: 'Switch business',
+    switchPlaceholder: 'Search for the business',
   },
   booking: {
     alsoBook: 'Anything else in the same visit?',

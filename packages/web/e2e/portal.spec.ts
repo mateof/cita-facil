@@ -43,6 +43,15 @@ test.describe('contexto del negocio en el portal', () => {
     await expect(marca(page)).toBeVisible();
   });
 
+  test('sin sesión no se ofrece cambiar de establecimiento', async ({ page }) => {
+    await page.goto(`/${ORGANIZACION_SLUG}`);
+    await expect(marca(page)).toBeVisible();
+
+    // El directorio no se sirve a quien no ha iniciado sesión, así que tampoco
+    // se le ofrece elegir entre negocios que no puede ver.
+    await expect(page.getByRole('button', { name: 'Cambiar de establecimiento' })).toHaveCount(0);
+  });
+
   test('sin sesión, la portada devuelve al negocio del enlace', async ({ page }) => {
     await page.goto(`/${ORGANIZACION_SLUG}`);
     await expect(marca(page)).toBeVisible();

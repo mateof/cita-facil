@@ -142,6 +142,9 @@ export default {
     needLink: 'Reserva en tu establecimiento',
     needLinkHint:
       'Abre el enlace que te haya dado el negocio (o su código QR) para reservar. Si ya tienes una cita, puedes consultarla con su código.',
+    business: 'Establecimiento',
+    switch: 'Cambiar de establecimiento',
+    switchPlaceholder: 'Busca el negocio',
   },
   booking: {
     alsoBook: '¿Algo más en la misma visita?',
