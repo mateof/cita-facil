@@ -1,5 +1,14 @@
 # CitaFácil
 
+<p align="center">
+  <a href="https://github.com/mateof/cita-facil/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/mateof/cita-facil/ci.yml?branch=main&amp;label=CI&amp;logo=github"></a>
+  <a href="package.json"><img alt="Node.js" src="https://img.shields.io/badge/Node.js-Fastify-339933?logo=nodedotjs&amp;logoColor=white"></a>
+  <a href="package.json"><img alt="React" src="https://img.shields.io/badge/React-frontend-61DAFB?logo=react&amp;logoColor=black"></a>
+  <a href="https://github.com/mateof/cita-facil/pkgs/container/cita-facil"><img alt="GHCR image" src="https://img.shields.io/badge/ghcr.io-image-2496ED?logo=docker&amp;logoColor=white"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/mateof/cita-facil"></a>
+  <a href="https://github.com/mateof/cita-facil/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/mateof/cita-facil"></a>
+</p>
+
 Plataforma de gestión de citas online para cualquier tipo de establecimiento:
 peluquerías, clínicas, gimnasios, piscinas, pistas deportivas, talleres,
 administraciones. El modelo de datos es genérico a propósito: un *servicio* que
@@ -169,22 +178,11 @@ docs/       Documentación
 
 ## Licencia
 
-Software propietario. Copyright (c) 2026 Mateo Fuentes Pombo. Todos los derechos reservados.
+Software libre bajo la [GNU General Public License v3.0](LICENSE).
+Copyright (c) 2026 Mateo Fuentes Pombo.
 
-| | |
-| --- | --- |
-| Instalarlo y usarlo **sin ánimo de lucro** | Sí |
-| Leer y estudiar el código | Sí |
-| Copiarlo para instalarlo, ejecutarlo y respaldarlo | Sí |
-| Uso comercial o lucrativo | No |
-| Modificarlo o crear obras derivadas | No |
-| Copiarlo o distribuirlo más allá de lo anterior | No |
-| Ingeniería inversa | No |
-| Retirar los avisos de autoría | No |
-
-Para cualquiera de los usos no permitidos hace falta autorización escrita del
-titular: escribe a mateof@gmail.com describiendo el uso previsto.
-
-Los términos completos están en [LICENSE](LICENSE), en castellano y con
-traducción al inglés. Las bibliotecas de terceros que usa el proyecto mantienen
-sus propias licencias.
+En resumen: puedes usarlo, estudiarlo, modificarlo y redistribuirlo, también
+con fines comerciales, siempre que las obras derivadas se distribuyan bajo la
+misma licencia y conserven los avisos de autoría. El software se entrega sin
+garantías. Los términos completos están en [LICENSE](LICENSE). Las bibliotecas
+de terceros que usa el proyecto mantienen sus propias licencias.
