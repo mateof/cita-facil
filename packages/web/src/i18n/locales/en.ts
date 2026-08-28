@@ -136,6 +136,12 @@ export default {
     sessionExpired: 'Your session expired. Please sign in again.',
   },
 
+  directory: {
+    empty: 'No business has online booking yet.',
+    needLink: 'Book at your business',
+    needLinkHint:
+      'Open the link the business gave you (or its QR code) to book. If you already have an appointment, you can look it up with its code.',
+  },
   booking: {
     alsoBook: 'Anything else in the same visit?',
     alsoBookHint: 'It all runs back to back, and only the slots where it fits are offered.',

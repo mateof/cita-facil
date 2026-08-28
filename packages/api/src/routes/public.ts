@@ -68,6 +68,18 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
     }),
   );
 
+  /**
+   * El directorio de establecimientos no es público.
+   *
+   * Quien llega sin sesión viene por el enlace de un negocio concreto, y no
+   * tiene por qué enterarse de qué otros negocios hay en la instalación: la
+   * lista de clientes de la competencia se deduce de ahí. Es la misma regla de
+   * privacidad entre organizaciones que ya rige en la búsqueda de personas.
+   *
+   * La excepción es la instalación de un solo negocio, que es el caso normal:
+   * ahí la instalación *es* ese negocio, no hay nada que enumerar, y la
+   * interfaz necesita la respuesta para saltar directamente a su página.
+   */
   app.get(
     '/organizations',
     {
@@ -75,10 +87,10 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
         tags: ['publico'],
         summary: 'Establecimientos con reserva online activa',
         description:
-          'En una instalación de un solo negocio devuelve una única entrada, y la interfaz salta directamente a su página de reservas.',
+          'Sin sesión iniciada solo responde en la instalación de un único negocio, para que la interfaz pueda saltar a su página de reservas; con varios devuelve la lista vacía. Con sesión devuelve todos.',
       },
     },
-    async () => {
+    async (request) => {
       const rows = await db()
         .selectFrom('organizations')
         .select(['id', 'slug', 'name', 'settings_json', 'timezone', 'image_url', 'icon', 'color'])
@@ -88,7 +100,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
         .limit(200)
         .execute();
 
-      return rows
+      const visibles = rows
         .filter((row) => {
           if (!row.settings_json) return true;
           try {
@@ -107,6 +119,9 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           icon: row.icon,
           color: row.color,
         }));
+
+      if (!request.auth.user && visibles.length > 1) return [];
+      return visibles;
     },
   );
 

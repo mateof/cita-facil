@@ -111,8 +111,34 @@ distinto.
 ## Portal público con varios negocios
 
 Con una sola organización, la portada redirige directamente a su página de
-reservas. Con varias, muestra la lista para que el cliente elija. Cada una
-mantiene su color de marca, su logotipo y sus textos.
+reservas. Cada negocio mantiene su color de marca, su logotipo y sus textos.
+
+**Con varias, el directorio no es público.** Quien llega sin sesión viene por el
+enlace o el QR de un negocio concreto, y su portada es la de ese negocio: al
+entrar en `/` se le devuelve a él. Enseñarle la lista entera le saca del sitio
+en el que creía estar y, de paso, cuenta a cualquiera qué otros negocios hay en
+la instalación. Es la misma regla de privacidad entre organizaciones que rige en
+la búsqueda de personas.
+
+`GET /public/organizations` aplica lo mismo del lado del servidor: sin sesión
+responde con la lista vacía en cuanto hay más de un negocio activo, y solo
+devuelve el único cuando la instalación tiene uno, porque ahí no hay nada que
+enumerar y la interfaz necesita saber a dónde saltar. Con sesión iniciada
+devuelve todos, y la portada vuelve a hacer de directorio.
+
+### El negocio en curso se recuerda
+
+`Mis citas`, `Mis bonos` y `Perfil` son pantallas comunes que no llevan el
+negocio en la dirección, así que el establecimiento por el que se entró se
+guarda en `sessionStorage` (`web/src/stores/organization-context.ts`). De ahí
+salen la marca de la cabecera, el tema y el negocio preseleccionado en los
+bonos.
+
+Por eso **"Reservar" lleva a la página del negocio en curso, no a `/`**: la
+portada es de la instalación y pasar por ella borraba el contexto, así que ir a
+"Mis citas", volver a "Reservar" y entrar otra vez en "Mis citas" dejaba al
+cliente con el aspecto genérico. El contexto solo se olvida cuando la portada
+enseña de verdad el directorio.
 
 ## Endpoints
 

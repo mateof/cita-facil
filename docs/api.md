@@ -80,7 +80,7 @@ Códigos habituales:
 
 ```
 GET  /public/config                                   Configuración de la instalación
-GET  /public/organizations                            Establecimientos con reserva online
+GET  /public/organizations                            Establecimientos con reserva online (sin sesión, solo si hay uno)
 GET  /public/organizations/:slug                      Servicios, sedes y recursos
 GET  /public/organizations/:id/availability            Huecos libres
 GET  /public/organizations/:id/calendar                Días con hueco (para el calendario)

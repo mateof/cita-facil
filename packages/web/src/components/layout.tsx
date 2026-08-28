@@ -33,9 +33,8 @@ import { api } from '../lib/api.ts';
 import type { PublicOrganization } from '../lib/types.ts';
 import { useAuth } from '../stores/auth.ts';
 import {
-  forgetOrganization,
-  organizationFromPath,
   rememberOrganization,
+  useOrganizationSlug,
 } from '../stores/organization-context.ts';
 import { useOrganizationTheme } from './theme.tsx';
 import { LOCALE_NAMES, SUPPORTED_LOCALES } from '../i18n/index.ts';
@@ -88,16 +87,16 @@ export function CustomerLayout() {
    * negocio en la dirección: aplicándolo solo allí, el cliente perdía el tema y
    * el nombre en cuanto salía de la reserva.
    */
-  const slug = organizationFromPath(location.pathname);
+  const slug = useOrganizationSlug(location.pathname);
 
   useEffect(() => {
     const enLaRuta = location.pathname.split('/')[1] ?? '';
     if (enLaRuta && !isReservedSlug(enLaRuta)) {
       rememberOrganization(enLaRuta);
-    } else if (location.pathname === '/') {
-      // La portada es de la instalación, no de ningún negocio.
-      forgetOrganization();
     }
+    // Olvidarlo es cosa de la portada, que es la única que sabe si de verdad
+    // va a enseñar el directorio de la instalación o si va a devolver al
+    // visitante a su negocio. Hacerlo aquí lo borraba antes de decidirlo.
   }, [location.pathname]);
 
   const organizacion = useQuery({
@@ -109,7 +108,9 @@ export function CustomerLayout() {
   useOrganizationTheme(organizacion.data?.theme);
 
   const items = [
-    { to: '/', label: t('nav.book'), icon: Home, end: true },
+    // "Reservar" lleva al negocio en curso, no a la portada: la portada es el
+    // directorio de la instalación y pasar por ella perdía el establecimiento.
+    { to: slug ? `/${slug}` : '/', label: t('nav.book'), icon: Home, end: true },
     { to: '/mis-citas', label: t('nav.myAppointments'), icon: CalendarDays },
     // Los bonos solo tienen sentido con sesión iniciada: sin cuenta no hay
     // saldo que enseñar.

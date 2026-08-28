@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Ticket } from 'lucide-react';
 import { api } from '../lib/api.ts';
+import { useRememberedOrganization } from '../stores/organization-context.ts';
 import { formatDate, formatMoney } from '../lib/format.ts';
 import type { CreditBalance, CreditPack, CreditWallet } from '../lib/types.ts';
 import {
@@ -38,7 +39,17 @@ export default function MyCredits() {
     queryFn: () => api.get<OrganizationSummary[]>('/public/organizations'),
   });
 
-  const active = organizationId ?? organizations.data?.[0]?.id ?? null;
+  /*
+   * El bono que interesa es el del negocio por el que se está navegando. Sin
+   * esto, salir a "Reservar" y volver dejaba el selector en el primero por
+   * orden alfabético, que rara vez es en el que se estaba.
+   */
+  const recordada = useRememberedOrganization();
+  const porDefecto =
+    organizations.data?.find((organization) => organization.slug === recordada) ??
+    organizations.data?.[0];
+
+  const active = organizationId ?? porDefecto?.id ?? null;
 
   const balance = useQuery({
     enabled: Boolean(active),

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { CalendarDays, ChevronRight, Clock, MapPin } from 'lucide-react';
@@ -7,12 +7,16 @@ import { api } from '../lib/api.ts';
 import { formatDate, formatTime, statusClass } from '../lib/format.ts';
 import type { Appointment, Paged } from '../lib/types.ts';
 import { Badge, EmptyState, LoadingBlock, PageHeader, Tabs } from '../components/ui.tsx';
+import { useBookingPath } from '../stores/organization-context.ts';
 
 /** Listado de citas del usuario, separadas en próximas y pasadas. */
 export default function MyAppointments() {
   const { t, i18n } = useTranslation();
   const [filter, setFilter] = useState<'upcoming' | 'past'>('upcoming');
   const locale = i18n.language.slice(0, 2);
+  const location = useLocation();
+  // Al negocio en curso, no a la portada: desde aquí se venía de uno.
+  const reservar = useBookingPath(location.pathname);
 
   const { data, isLoading } = useQuery({
     queryKey: ['my-appointments', filter],
@@ -40,7 +44,7 @@ export default function MyAppointments() {
           title={t('appointments.empty')}
           description={t('appointments.emptyHint')}
           action={
-            <Link to="/" className="btn-primary">
+            <Link to={reservar} className="btn-primary">
               {t('nav.book')}
             </Link>
           }

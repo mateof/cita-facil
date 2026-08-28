@@ -137,6 +137,12 @@ export default {
     sessionExpired: 'La sesión ha caducado. Vuelve a entrar.',
   },
 
+  directory: {
+    empty: 'Todavía no hay ningún establecimiento con reserva online.',
+    needLink: 'Reserva en tu establecimiento',
+    needLinkHint:
+      'Abre el enlace que te haya dado el negocio (o su código QR) para reservar. Si ya tienes una cita, puedes consultarla con su código.',
+  },
   booking: {
     alsoBook: '¿Algo más en la misma visita?',
     alsoBookHint: 'Se hace todo seguido y solo se ofrecen las horas donde cabe entero.',

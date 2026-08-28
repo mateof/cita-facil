@@ -74,6 +74,35 @@ test.describe('organizaciones', () => {
     await expect(page.getByRole('main').getByText(nombre)).toBeVisible();
   });
 
+  /**
+   * Con dos negocios en la instalación, el directorio deja de ser público: el
+   * visitante llega por el enlace de uno concreto y la lista de los demás no le
+   * incumbe. La excepción es la instalación de un solo negocio, donde no hay
+   * nada que enumerar y la interfaz necesita la respuesta para saltar a él.
+   */
+  test('el directorio de negocios no se sirve sin sesión', async ({ page, request }) => {
+    const nombre = `${PREFIJO} ${Date.now().toString().slice(-5)}`;
+
+    await page.goto('/admin/organizaciones');
+    await page.getByRole('button', { name: 'Nueva organización' }).click();
+    await page.getByLabel('Nombre del negocio').fill(nombre);
+    await page.getByRole('button', { name: 'Crear' }).click();
+    await expect(page.getByRole('main').getByText(nombre)).toBeVisible();
+
+    // `request` no lleva la sesión del navegador: es un visitante cualquiera.
+    const anonima = await request.get('/api/v1/public/organizations');
+    expect(anonima.ok()).toBeTruthy();
+    expect(await anonima.json()).toEqual([]);
+
+    const token = await tokenDe(request, CUENTAS.admin);
+    const conSesion = await request.get('/api/v1/public/organizations', {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    const negocios = (await conSesion.json()) as { name: string }[];
+    expect(negocios.length).toBeGreaterThan(1);
+    expect(negocios.map((negocio) => negocio.name)).toContain(nombre);
+  });
+
   test('dar de baja una organización la quita del panel', async ({ page }) => {
     const nombre = `${PREFIJO} ${Date.now().toString().slice(-5)}`;
 

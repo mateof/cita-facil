@@ -5,7 +5,7 @@ import { FONT_STACKS, headerLabels } from '@cita-facil/shared';
 import { api } from '../lib/api.ts';
 import type { PublicOrganization } from '../lib/types.ts';
 import { EntityAvatar } from './avatar.tsx';
-import { organizationFromPath } from '../stores/organization-context.ts';
+import { useOrganizationSlug } from '../stores/organization-context.ts';
 
 /**
  * Lo que se lee arriba a la izquierda.
@@ -26,7 +26,7 @@ export function HeaderBrand() {
 
   // La misma regla que usa el layout para el tema: la dirección manda y, en
   // las pantallas comunes, vale la última organización por la que se entró.
-  const slug = organizationFromPath(location.pathname);
+  const slug = useOrganizationSlug(location.pathname);
 
   const organizacion = useQuery({
     enabled: Boolean(slug),
